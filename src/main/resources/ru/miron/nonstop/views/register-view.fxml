@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<GridPane fx:id="registerPane" alignment="CENTER" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="ru.miron.nonstop.controllers.RegisterController" stylesheets="@../styles/styles.css" hgap="10" vgap="5">
+    <padding>
+        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
+    </padding>
+    <VBox GridPane.columnIndex="1" GridPane.rowIndex="0" alignment="BASELINE_RIGHT">
+        <ChoiceBox fx:id="languageSelector"/>
+    </VBox>
+    <Label fx:id="enterLoginLabel" styleClass="defaultLabel" GridPane.columnIndex="0" GridPane.rowIndex="1" GridPane.columnSpan="2">Логин:</Label>
+    <TextField fx:id="loginField" styleClass="defaultField" promptText="Введите логин..." GridPane.columnIndex="0" GridPane.rowIndex="2" GridPane.columnSpan="2"/>
+    <Label fx:id="loginErrorLabel" styleClass="errorLabel" GridPane.columnIndex="0" GridPane.rowIndex="3" GridPane.columnSpan="2">Неверный логин</Label>
+    <Label fx:id="enterPasswordLabel" styleClass="defaultLabel" GridPane.columnIndex="0" GridPane.rowIndex="4" GridPane.columnSpan="2">Пароль:</Label>
+    <PasswordField fx:id="passwordField" styleClass="defaultField" promptText="Введите пароль..." GridPane.columnIndex="0" GridPane.rowIndex="5" GridPane.columnSpan="2"/>
+    <Label fx:id="passwordErrorLabel" styleClass="errorLabel" GridPane.columnIndex="0" GridPane.rowIndex="6" GridPane.columnSpan="2">Неверный формат</Label>
+    <Label fx:id="confirmPasswordLabel" styleClass="defaultLabel" GridPane.columnIndex="0" GridPane.rowIndex="7" GridPane.columnSpan="2">Пароль:</Label>
+    <PasswordField fx:id="confirmPasswordField" styleClass="defaultField" promptText="Подтвердите пароль..." GridPane.columnIndex="0" GridPane.rowIndex="8" GridPane.columnSpan="2"/>
+    <Label fx:id="confirmPasswordErrorLabel" styleClass="errorLabel" GridPane.columnIndex="0" GridPane.rowIndex="9" GridPane.columnSpan="2">Пароли должны совпадать</Label>
+    <Button fx:id="enterButton" styleClass="defaultButton" GridPane.columnIndex="0" GridPane.rowIndex="10" alignment="BASELINE_RIGHT" onAction="#enterBtnActionHandler">вход</Button>
+    <Button fx:id="registerButton" styleClass="defaultButton" GridPane.columnIndex="1" GridPane.rowIndex="10" alignment="BASELINE_LEFT" onAction="#registerBtnActionHandler">регистрация</Button>
+</GridPane>

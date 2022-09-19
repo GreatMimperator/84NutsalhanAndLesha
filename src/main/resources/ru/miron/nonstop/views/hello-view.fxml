@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<GridPane fx:id="enterPane" alignment="CENTER" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="ru.miron.nonstop.controllers.EnterController" stylesheets="@../styles/styles.css" hgap="10" vgap="5">
+    <padding>
+        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
+    </padding>
+    <VBox GridPane.columnIndex="1" GridPane.rowIndex="0" alignment="BASELINE_RIGHT">
+        <ChoiceBox fx:id="languageSelector"/>
+    </VBox>
+    <Label fx:id="enterLoginLabel" styleClass="defaultLabel" GridPane.columnIndex="0" GridPane.rowIndex="1" GridPane.columnSpan="2"/>
+    <TextField fx:id="loginField" styleClass="defaultField" GridPane.columnIndex="0" GridPane.rowIndex="2" GridPane.columnSpan="2"/>
+    <Label fx:id="loginErrorLabel" styleClass="errorLabel" GridPane.columnIndex="0" GridPane.rowIndex="3" GridPane.columnSpan="2" visible="false"/>
+    <Label fx:id="enterPasswordLabel" styleClass="defaultLabel" GridPane.columnIndex="0" GridPane.rowIndex="4" GridPane.columnSpan="2"/>
+    <PasswordField fx:id="passwordField" styleClass="defaultField" GridPane.columnIndex="0" GridPane.rowIndex="5" GridPane.columnSpan="2"/>
+    <Label fx:id="passwordErrorLabel" styleClass="errorLabel" GridPane.columnIndex="0" GridPane.rowIndex="6" GridPane.columnSpan="2" visible="false"/>
+    <VBox GridPane.columnIndex="0" GridPane.rowIndex="7" alignment="BASELINE_LEFT">
+        <Button fx:id="registerButton" styleClass="defaultButton" onAction="#registerBtnActionHandler"/>
+    </VBox>
+    <VBox GridPane.columnIndex="1" GridPane.rowIndex="7" alignment="BASELINE_RIGHT">
+        <Button fx:id="enterButton" styleClass="defaultButton" onAction="#enterBtnActionHandler"/>
+    </VBox>
+</GridPane>

@@ -1,0 +1,49 @@
+#enterPane, #registerPane {
+    -fx-background-image: url("../dead/login_background.png");
+    -fx-background-size: cover;
+    -fx-padding: 20px 20px 40px 20px;
+}
+
+#languageSelector {
+    -fx-color: white;
+    -fx-text-fill: white;
+    -fx-wrap-text: white;
+    -fx-mark-color: #a7a7a7;
+    -fx-background-color: rgba(180, 169, 169, 0.5);
+}
+#languageSelector > .label {
+    -fx-text-fill: white;
+}
+#languageSelector > .context-menu > * {
+    -fx-background-color: rgba(180, 169, 169, 0.7);
+}
+.menu-item > .label {
+    -fx-text-fill: white;
+}
+
+.defaultButton {
+    -fx-border-width: 2px;
+    -fx-border-color: #3f3f3f;
+    -fx-border-radius: 5px;
+    -fx-background-color: #a7a7a7;
+    -fx-background-radius: 5px;
+    -fx-color: #292929;
+    -fx-text-fill: #3f3f3f;
+}
+
+.defaultField {
+    -fx-background-color: rgba(180, 169, 169, 0.5);
+    -fx-background-radius: 5px;
+    -fx-border-color: #afb3b6;
+    -fx-border-radius: 5px;
+    -fx-prompt-text-fill: #afb3b6;
+    -fx-text-fill: white;
+}
+
+.defaultLabel {
+    -fx-text-fill: #afb3b6;
+}
+
+.errorLabel {
+    -fx-text-fill: #b6080a;
+}
