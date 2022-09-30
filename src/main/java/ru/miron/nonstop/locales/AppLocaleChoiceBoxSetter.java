@@ -6,17 +6,20 @@ import javafx.scene.control.ChoiceBox;
 
 import java.util.Locale;
 
-public class AppChoiceBoxLocaleController {
-    public static void setChoiceBoxContent(ChoiceBox<String> choiceBox) {
+public class AppLocaleChoiceBoxSetter {
+    public static void setContentAndOnChangeLanguageChange(ChoiceBox<String> choiceBox) {
+        setContent(choiceBox);
+        setOnChangeLanguageChange(choiceBox);
+    }
+
+    protected static void setContent(ChoiceBox<String> choiceBox) {
         var items = choiceBox.getItems();
-        var appLocaleManager = AppLocaleManager.getAppLocaleManager();
-        var currentLocale = appLocaleManager.getCurrentLocale();
+        var currentLocale = AppLocaleManager.getCurrentLocale();
         items.clear();
         items.add(getChoiceBoxLocaleName(currentLocale));
         choiceBox.setValue(getChoiceBoxLocaleName(currentLocale));
-        for (var nextLocaleWithBundle : appLocaleManager.getAvailableLocalesWithBundles()) {
-            var nextLocale = nextLocaleWithBundle.getLocale();
-            if (nextLocale.equals(appLocaleManager.getCurrentLocale())) {
+        for (var nextLocale : AppLocaleManager.getAvailableLocales()) {
+            if (nextLocale.equals(currentLocale)) {
                 continue;
             }
             items.add(getChoiceBoxLocaleName(nextLocale));
@@ -31,9 +34,7 @@ public class AppChoiceBoxLocaleController {
      * @throws IllegalStateException if didn't find in available locale list
      */
     public static Locale getLocaleByChoiceBoxLabel(String choiceBoxLabel) {
-        var appLocaleManager = AppLocaleManager.getAppLocaleManager();
-        for (var availableLocaleWithBundle : appLocaleManager.getAvailableLocalesWithBundles()) {
-            var availableLocale = availableLocaleWithBundle.getLocale();
+        for (var availableLocale : AppLocaleManager.getAvailableLocales()) {
             if (getChoiceBoxLocaleName(availableLocale).equals(choiceBoxLabel)) {
                 return availableLocale;
             }
@@ -41,14 +42,13 @@ public class AppChoiceBoxLocaleController {
         throw new IllegalStateException();
     }
 
-    public static void setOnChangeLanguageChange(LanguageUpdatable languageUpdatable, ChoiceBox<String> languageSelector) {
+    protected static void setOnChangeLanguageChange(ChoiceBox<String> languageSelector) {
         languageSelector.getSelectionModel().selectedItemProperty().addListener(
             new ChangeListener<String>() {
                 @Override
                 public void changed(ObservableValue<? extends String> observableValue, String oldValue, String newValue) {
                     var localeToSet = getLocaleByChoiceBoxLabel(newValue);
-                    AppLocaleManager.getAppLocaleManager().setCurrentLocaleWithBundleWithLocale(localeToSet);
-                    languageUpdatable.updateLanguage();
+                    AppLocaleManager.setCurrentLocaleWithListenersUpdate(localeToSet);
                 }
             }
         );

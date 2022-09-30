@@ -1,4 +1,4 @@
-package ru.miron.nonstop.locales;
+package ru.miron.nonstop.locales.entities;
 
 import ru.miron.nonstop.locales.entities.LocaleWithBundle;
 

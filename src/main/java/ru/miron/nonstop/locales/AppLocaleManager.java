@@ -1,13 +1,12 @@
 package ru.miron.nonstop.locales;
 
-import javafx.beans.property.Property;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.control.ChoiceBox;
-import ru.miron.nonstop.locales.bundles.BundleLoader;
+import ru.miron.nonstop.locales.bundles.LocaleBundleLoader;
+import ru.miron.nonstop.locales.entities.LocaleManager;
 import ru.miron.nonstop.locales.entities.LocaleWithBundle;
 
 import java.io.FileNotFoundException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class AppLocaleManager {
     private final static String localesBundlePath;
@@ -43,7 +42,7 @@ public class AppLocaleManager {
     private static List<LocaleWithBundle> transformLocalesListToLocalesWithBundlesList(LinkedList<Locale> localesList) throws FileNotFoundException {
         var localesWithBundlesList = new ArrayList<LocaleWithBundle>(localesList.size());
         for (var locale : localesList) {
-            var bundle = BundleLoader.load(localesBundlePath, locale);
+            var bundle = LocaleBundleLoader.load(localesBundlePath, locale);
             var localeWithBundle = new LocaleWithBundle(locale, bundle);
             localesWithBundlesList.add(localeWithBundle);
         }
@@ -54,8 +53,20 @@ public class AppLocaleManager {
         return (Locale) defaultLocale.clone();
     }
 
-    public static LocaleManager getAppLocaleManager() {
-        return appLocaleManager;
+    public static Locale getCurrentLocale() {
+        return appLocaleManager.getCurrentLocale();
+    }
+
+    public static void setCurrentLocaleWithListenersUpdate(Locale locale) {
+        appLocaleManager.setCurrentLocaleWithBundleWithLocale(locale);
+        updateLanguageUpdatableListeners();
+    }
+
+    public static List<Locale> getAvailableLocales() {
+        return appLocaleManager.getAvailableLocalesWithBundles()
+                .stream()
+                .map(localeWithBundle -> localeWithBundle.getLocale())
+                .collect(Collectors.toList());
     }
 
     public static String getTextByLabel(String label) {
@@ -64,5 +75,13 @@ public class AppLocaleManager {
 
     public static void addLanguageUpdatableListener(LanguageUpdatable languageUpdatable) {
         languageUpdatableListenersList.add(languageUpdatable);
+    }
+
+    public static void removeLanguageUpdatableListener(LanguageUpdatable languageUpdatable) {
+        languageUpdatableListenersList.remove(languageUpdatable);
+    }
+
+    private static void updateLanguageUpdatableListeners() {
+        languageUpdatableListenersList.forEach(languageUpdatable -> languageUpdatable.updateLanguage());
     }
 }

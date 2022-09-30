@@ -7,11 +7,11 @@ import java.util.ListResourceBundle;
 import java.util.Locale;
 import java.util.Scanner;
 
-public class BundleLoader {
+public class LocaleBundleLoader {
 
     public static ListResourceBundle load(String generalPath, Locale localeToGetPostfixFrom) throws FileNotFoundException, IllegalStateException {
         var localePostfix = localeToGetPostfixFrom.getDisplayName();
-        return BundleLoader.load(generalPath, localePostfix);
+        return LocaleBundleLoader.load(generalPath, localePostfix);
     }
 
     public static ListResourceBundle load(String generalPath, String localePostfix) throws FileNotFoundException, IllegalStateException {

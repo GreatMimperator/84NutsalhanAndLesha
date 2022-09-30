@@ -4,12 +4,10 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import ru.miron.nonstop.EmoCore;
-import ru.miron.nonstop.locales.AppChoiceBoxLocaleController;
-import ru.miron.nonstop.locales.AppElementsLocaleSettingManager;
+import ru.miron.nonstop.locales.AppLocaleChoiceBoxSetter;
+import ru.miron.nonstop.locales.ElementsLocaleSetter;
 import ru.miron.nonstop.locales.AppLocaleManager;
 import ru.miron.nonstop.locales.LanguageUpdatable;
-
-import java.io.IOException;
 
 public class EnterController implements LanguageUpdatable {
     @FXML
@@ -39,19 +37,42 @@ public class EnterController implements LanguageUpdatable {
     @FXML
     private Button enterButton;
 
+    private Validate.LoginErrorLabelVariant loginErrorLabelVariant = null;
+
+    private Validate.PasswordErrorLabelVariant passwordErrorLabelVariant = null;
+
     public void registerBtnActionHandler(ActionEvent actionEvent) {
         System.out.println("Register btn of enter controller clicked");
         EmoCore.setRegisterScene();
     }
 
     public void enterBtnActionHandler(ActionEvent actionEvent) {
-        System.out.println("Enter btn of enter controller clicked");
+        System.out.println("Enter btn of reg controller clicked");
+        if (checkFieldsAndShowIfBad()) {
+            System.out.println("Enter fields are bad. So, wont send any data");
+        } else {
+            System.out.println("Enter fields are good. So, will send to server");
+        }
     }
 
+    private boolean checkFieldsAndShowIfBad() {
+        loginErrorLabelVariant =
+                Validate.validateLoginAndShowTextLabelWithErrorIfBad(loginField, loginErrorLabel);
+        passwordErrorLabelVariant =
+                Validate.validatePasswordAndShowTextLabelWithErrorIfBad(passwordField, passwordErrorLabel);
+        return loginErrorLabelVariant != null ||
+                passwordErrorLabelVariant != null;
+    }
+
+    private void hideErrorLabels() {
+        loginErrorLabel.setVisible(false);
+        passwordErrorLabel.setVisible(false);
+    }
+
+    @FXML
     public void initialize() {
-        System.out.println("hfvjbkj");
-        AppChoiceBoxLocaleController.setChoiceBoxContent(languageSelector);
-        AppChoiceBoxLocaleController.setOnChangeLanguageChange(this, languageSelector);
+        System.out.println("inited enter controller");
+        AppLocaleChoiceBoxSetter.setContentAndOnChangeLanguageChange(languageSelector);
         setLabels();
     }
 
@@ -61,13 +82,14 @@ public class EnterController implements LanguageUpdatable {
 
     @Override
     public void updateLanguage() {
-        System.out.println("Can be updated to " + AppLocaleManager.getAppLocaleManager().getCurrentLocale().getDisplayName());
-        AppElementsLocaleSettingManager.setLabelLanguage(enterLoginLabel, "enterLoginLabel");
-        AppElementsLocaleSettingManager.setTextFieldPromptTextLanguage(loginField, "enterLoginFieldPromptText");
-        AppElementsLocaleSettingManager.setLabelLanguage(enterPasswordLabel, "enterPasswordLabel");
-        AppElementsLocaleSettingManager.setTextFieldPromptTextLanguage(passwordField, "enterPasswordFieldPromptText");
-        AppElementsLocaleSettingManager.setButtonLabelLanguage(registerButton, "registerButtonLabel");
-        AppElementsLocaleSettingManager.setButtonLabelLanguage(enterButton, "enterButtonLabel");
-        // todo: не забыть о enum системе с ошибками
+        System.out.println("Can be updated to " + AppLocaleManager.getCurrentLocale().getDisplayName());
+        ElementsLocaleSetter.setLabelTextInCurrentLanguage(enterLoginLabel, "enterLoginLabel");
+        ElementsLocaleSetter.setTextFieldPromptTextInCurrentLanguage(loginField, "enterLoginFieldPromptText");
+        ElementsLocaleSetter.setLabelTextInCurrentLanguage(enterPasswordLabel, "enterPasswordLabel");
+        ElementsLocaleSetter.setTextFieldPromptTextInCurrentLanguage(passwordField, "enterPasswordFieldPromptText");
+        ElementsLocaleSetter.setButtonLabelInCurrentLanguage(registerButton, "registerButtonLabel");
+        ElementsLocaleSetter.setButtonLabelInCurrentLanguage(enterButton, "enterButtonLabel");
+        Validate.setLoginErrorLabelInCurrentLanguageIfHasVariant(loginErrorLabel, loginErrorLabelVariant);
+        Validate.setPasswordErrorLabelInCurrentLanguageIfHasVariant(passwordErrorLabel, passwordErrorLabelVariant);
     }
 }
