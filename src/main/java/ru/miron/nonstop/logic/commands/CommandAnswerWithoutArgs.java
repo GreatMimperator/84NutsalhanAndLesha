@@ -91,7 +91,7 @@ public class CommandAnswerWithoutArgs {
         }
     }
 
-    public static enum EnterState {
+    public enum EnterState {
         ENTERED,
         WRONG_LOGIN,
         WRONG_PASSWORD;

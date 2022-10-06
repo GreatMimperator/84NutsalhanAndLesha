@@ -8,6 +8,14 @@ import ru.miron.nonstop.locales.AppLocaleChoiceBoxSetter;
 import ru.miron.nonstop.locales.ElementsLocaleSetter;
 import ru.miron.nonstop.locales.AppLocaleManager;
 import ru.miron.nonstop.locales.LanguageUpdatable;
+import ru.miron.nonstop.logic.commands.Command;
+import ru.miron.nonstop.logic.commands.CommandAnswer;
+import ru.miron.nonstop.logic.commands.CommandName;
+import ru.miron.nonstop.logic.commands.EnterEntry;
+
+import java.io.IOException;
+
+import static ru.miron.nonstop.logic.commands.CommandAnswerWithoutArgs.EnterState.*;
 
 public class EnterController implements LanguageUpdatable {
     @FXML
@@ -47,12 +55,49 @@ public class EnterController implements LanguageUpdatable {
     }
 
     public void enterBtnActionHandler(ActionEvent actionEvent) {
-        System.out.println("Enter btn of reg controller clicked");
         if (checkFieldsAndShowIfBad()) {
             System.out.println("Enter fields are bad. So, wont send any data");
+            try {
+                EmoCore.createInfoAutoClosableWindow("badEnteredInfoMsg", "Bad entered info");
+            } catch (IOException e) {}
         } else {
             System.out.println("Enter fields are good. So, will send to server");
+            var enterEntry = getEnterEntryFromFields();
+            var registerCommand = new Command(CommandName.SIGN_IN, enterEntry, null);
+            CommandAnswer signInCommandAnswer;
+            try {
+                signInCommandAnswer = EmoCore.tryToGetCommandAnswerWithErrorWindowsGenOnFailOrErrorAnswer(registerCommand);
+            } catch (IllegalStateException e) {
+                return;
+            }
+            var signInEnterState = signInCommandAnswer.getCommandAnswerWithoutArgs().getEnterState();
+            switch (signInEnterState) {
+                case ENTERED -> {
+                    EmoCore.enterEntry = enterEntry;
+                    System.out.println("HERE CHANGES TO MAIN SCENE");
+                    EmoCore.setTableScene();
+                }
+                case WRONG_LOGIN -> {
+                    try {
+                        EmoCore.createInfoAutoClosableWindow("signInLoginDoesntExistMsg", "Login doesn't exist");
+                    } catch (IOException e) {}
+                }
+                case WRONG_PASSWORD -> {
+                    try {
+                        EmoCore.createInfoAutoClosableWindow("signInWrongPasswordMsg", "Wrong password");
+                    } catch (IOException e) {}
+                }
+                default -> {
+                    throw new IllegalStateException("Api Changed");
+                }
+            }
         }
+    }
+
+    public EnterEntry getEnterEntryFromFields() {
+        var login = Validate.getLogin(loginField);
+        var password = Validate.getPassword(passwordField);
+        return new EnterEntry(login, password);
     }
 
     private boolean checkFieldsAndShowIfBad() {
@@ -91,5 +136,6 @@ public class EnterController implements LanguageUpdatable {
         ElementsLocaleSetter.setButtonLabelInCurrentLanguage(enterButton, "enterButtonLabel");
         Validate.setLoginErrorLabelInCurrentLanguageIfHasVariant(loginErrorLabel, loginErrorLabelVariant);
         Validate.setPasswordErrorLabelInCurrentLanguageIfHasVariant(passwordErrorLabel, passwordErrorLabelVariant);
+        AppLocaleChoiceBoxSetter.updateLanguage(languageSelector);
     }
 }

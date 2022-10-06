@@ -3,6 +3,7 @@ package ru.miron.nonstop.locales;
 import ru.miron.nonstop.locales.bundles.LocaleBundleLoader;
 import ru.miron.nonstop.locales.entities.LocaleManager;
 import ru.miron.nonstop.locales.entities.LocaleWithBundle;
+import ru.miron.nonstop.logic.commands.ErrorDescription;
 
 import java.io.FileNotFoundException;
 import java.util.*;
@@ -83,5 +84,23 @@ public class AppLocaleManager {
 
     private static void updateLanguageUpdatableListeners() {
         languageUpdatableListenersList.forEach(languageUpdatable -> languageUpdatable.updateLanguage());
+    }
+
+    public static String getQueryErrorTypeLabelName(ErrorDescription.ErrorType errorType) {
+        switch (errorType) {
+            case KEY_NOT_FOUND -> {
+                return "keyNotFoundErrorName";
+            }
+            case KEY_VALUE_HAS_ILLEGAL_TYPE -> {
+                return "keyValueHasIllegalTypeErrorName";
+            }
+            case KEY_VALUE_IS_OUT_OF_BOUNDS -> {
+                return "keyValueIsOutOfBoundsErrorName";
+            }
+            case SERVER_INTERNAL_ERROR -> {
+                return "serverInternalErrorName";
+            }
+        }
+        throw new IllegalStateException("Introduced new web error type");
     }
 }

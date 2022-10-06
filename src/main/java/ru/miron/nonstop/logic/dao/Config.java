@@ -35,7 +35,7 @@ public class Config {
                 int connectionTryWaiting = (int) socketAddressConfig.get("connectionTryWaiting").asInteger().getValue();
                 return new Config(hostname, port, connectionTriesCount, connectionTryWaiting);
             } catch (NullPointerException ex) {
-                throw new NullPointerException("Config file structure is broken");
+                throw new IllegalStateException("Config file structure is broken");
             }
         } else {
             throw new IllegalStateException("File is not a map of config values");

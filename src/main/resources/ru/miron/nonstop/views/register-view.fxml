@@ -25,6 +25,6 @@
         <Button fx:id="enterButton" styleClass="defaultButton" onAction="#enterBtnActionHandler"/>
     </VBox>
     <VBox GridPane.columnIndex="1" GridPane.rowIndex="10" alignment="BASELINE_RIGHT">
-        <Button fx:id="registerButton" styleClass="defaultButton" onAction="#registerBtnActionHandler"/>
+        <Button fx:id="registerButton" styleClass="defaultButton" onAction="#registerBtnActionHandler" defaultButton="true"/>
     </VBox>
 </GridPane>

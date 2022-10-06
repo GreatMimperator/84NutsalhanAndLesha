@@ -42,6 +42,10 @@ public class AppLocaleChoiceBoxSetter {
         throw new IllegalStateException();
     }
 
+    public static void updateLanguage(ChoiceBox<String> languageSelector) {
+        var currentLocale = AppLocaleManager.getCurrentLocale();
+        languageSelector.setValue(getChoiceBoxLocaleName(currentLocale));
+    }
     protected static void setOnChangeLanguageChange(ChoiceBox<String> languageSelector) {
         languageSelector.getSelectionModel().selectedItemProperty().addListener(
             new ChangeListener<String>() {

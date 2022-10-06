@@ -1,0 +1,62 @@
+{
+    "register": {
+        "description": "Зарегистироваться",
+        "coding": "register"
+    },
+    "login": {
+        "description": "Войти",
+        "coding": "login"
+    },
+    "insert dragon": {
+        "description": "Вставить дракона по ключу",
+        "coding": "insert key | {element}, где {element} - имя, возраст, описание и размах крыла через '|'"
+    },
+    "get dragons": {
+        "description": "Показать всех драконов",
+        "coding": "show"
+    },
+    "dragons info": {
+        "description": "Тип коллекции, время создания коллекции, число драконов внутри",
+        "coding": "info"
+    },
+    "update element": {
+        "description": "Обновить дракона по его id",
+        "coding": "update id | {element}, где {element} - имя, возраст, описание и размах крыла через '|'"
+    },
+    "remove dragon by key": {
+        "description": "Удалить дракона по ключу",
+        "coding": "remove_key key"
+    },
+    "clear elements": {
+        "description": "Очистить коллекцию драконов",
+        "coding": "clear"
+    },
+    "remove greater dragons": {
+        "description": "Удалить элементы, которые больше (самый молодой по возрасту, широкий по размаху и самый молодой в коллекции)",
+        "coding": "remove_greater {element}, где {element} - имя, возраст, описание и размах крыла через '|'"
+    },
+    "remove lower dragons": {
+        "description": "Удалить элементы, которые меньше",
+        "coding": "remove_lower {element}, где {element} - имя, возраст, описание и размах крыла через '|'"
+    },
+    "replace if dragon is greater": {
+        "description": "Заменить элемент по ключу, если он больше",
+        "coding": "replace_if_greater key | {element}, где {element} - имя, возраст, описание и размах крыла через '|'"
+    },
+    "get wingspans sum": {
+        "description": "Показать сумму размахов крыльев (всех драконов коллекции)",
+        "coding": "sum_of_wingspan"
+    },
+    "get dragons with this description": {
+        "description": "Показать элементы с этим описанием",
+        "coding": "filter_by_description description"
+    },
+    "get unique numbers of treasures": {
+        "description": "Показать список уникальных показателей сокровищ для пещер всех драконов списка",
+        "coding": "print_unique_cave"
+    },
+    "exit": {
+        "description": "Выйти, сохранив текущую коллекцию в файл",
+        "coding": "exit"
+    }
+}

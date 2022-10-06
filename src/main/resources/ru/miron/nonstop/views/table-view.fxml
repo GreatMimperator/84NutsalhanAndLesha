@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane fx:id="tablePane" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="ru.miron.nonstop.controllers.TableController" stylesheets="@../styles/styles.css" >
+    <TableView fx:id="dragonsTableView" AnchorPane.topAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"/>
+    <HBox fx:id="tablePaneFooter" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+        <HBox alignment="CENTER_LEFT" >
+            <Button fx:id="filterButton" styleClass="defaultButton, bigButton" />
+        </HBox>
+        <Region HBox.hgrow="ALWAYS"/>
+        <HBox alignment="CENTER" >
+            <Button fx:id="commandsListButton" onAction="#commandsListBtnActionListener" styleClass="defaultButton, superBigButton"/>
+        </HBox>
+        <Region HBox.hgrow="ALWAYS" />
+        <VBox alignment="CENTER_RIGHT">
+            <ChoiceBox fx:id="languageSelector"/>
+            <Label fx:id="authorizedAsLabel" styleClass="defaultLabel"/>
+            <Label fx:id="authorizedLoginLabel" styleClass="defaultLabel"/>
+            <Button fx:id="exitButton" onAction="#exitBtnActionListener" styleClass="defaultButton, bigButton" />
+        </VBox>
+    </HBox>
+</AnchorPane>

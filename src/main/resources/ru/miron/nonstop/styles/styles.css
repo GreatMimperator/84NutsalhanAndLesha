@@ -4,17 +4,91 @@
     -fx-padding: 20px 20px 40px 20px;
 }
 
-#languageSelector {
+#infoPane {
+    -fx-background-color: #333333;
+}
+
+#commandsListPane {
+    -fx-background-image: url("../dead/papich-dead-inside.gif");
+    -fx-background-size: cover;
+}
+
+#commandsListPane .button {
+    -fx-min-width: 200px;
+}
+
+#insertDragonPane {
+    -fx-background-image: url("../dead/change_background.png");
+    -fx-background-size: cover;
+    -fx-max-width: 750px;
+}
+
+#tablePane {
+    -fx-background-image: url("../dead/main_blacked_background.jpg");
+    -fx-background-size: cover;
+}
+
+.table-row-cell {
+    -fx-table-cell-border-color: transparent;
+}
+
+#dragonsTableView {
+    -fx-min-height: 1000px;
+    -fx-background-color: transparent;
+}
+
+.table-view > .column-header > .arrow {
+    -fx-background-color: #b2afaf;
+}
+
+.table-view .column-header,
+.table-view .column-header .filler,
+.table-view .column-header-background,
+.table-view .column-header-background .filler {
+    -fx-background-color: transparent;
+}
+
+.table-view .column-header {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.table-view .column-header .label {
+    -fx-background-color: transparent;
+    -fx-alignment: center;
+    -fx-text-fill: white;
+}
+
+.table-row-cell,
+.table-row-cell:odd {
+    -fx-background-color: transparent;
+}
+
+.table-row-cell:selected {
+    -fx-background-color: transparent;
+}
+
+.table-view .table-cell {
+    -fx-text-fill: white;
+}
+
+#tablePaneFooter {
+    -fx-background-color: rgba(52, 18, 17, 0.5);
+    -fx-height: 200px;
+    -fx-padding: 10px 20px 10px 20px;
+}
+
+.choice-box {
     -fx-color: white;
     -fx-text-fill: white;
     -fx-wrap-text: white;
     -fx-mark-color: #a7a7a7;
     -fx-background-color: rgba(180, 169, 169, 0.5);
 }
-#languageSelector > .label {
+.choice-box > .label {
     -fx-text-fill: white;
 }
-#languageSelector > .context-menu > * {
+.choice-box > .context-menu > * {
     -fx-background-color: rgba(180, 169, 169, 0.7);
 }
 .menu-item > .label {
@@ -22,22 +96,56 @@
 }
 
 .defaultButton {
-    -fx-border-width: 2px;
-    -fx-border-color: #3f3f3f;
-    -fx-border-radius: 5px;
-    -fx-background-color: #a7a7a7;
+    /*-fx-border-width: 2px;*/
+    /*-fx-border-color: #3f3f3f;*/
+    /*-fx-border-radius: 5px;*/
+    -fx-background-color: rgba(167, 167, 167, 0.5); /*#a7a7a7*/
     -fx-background-radius: 5px;
     -fx-color: #292929;
-    -fx-text-fill: #3f3f3f;
+    -fx-text-fill: white;
 }
 
-.defaultField {
+.bigButton {
+    -fx-min-width: 100;
+    -fx-min-height: 40;
+    -fx-font-size: 20;
+}
+
+.superBigButton {
+    -fx-min-width: 200;
+    -fx-min-height: 80;
+    -fx-font-size: 40;
+}
+
+.defaultButton:pressed {
+    -fx-background-color: #3f3f3f;
+    -fx-text-fill: #a7a7a7;
+}
+
+.defaultField, .defaultTextArea{
     -fx-background-color: rgba(180, 169, 169, 0.5);
     -fx-background-radius: 5px;
     -fx-border-color: #afb3b6;
     -fx-border-radius: 5px;
     -fx-prompt-text-fill: #afb3b6;
     -fx-text-fill: white;
+}
+
+.defaultTextArea .scroll-pane {
+    -fx-background-color: transparent;
+}
+
+.defaultTextArea .scroll-pane .viewport{
+    -fx-background-color: transparent;
+}
+
+.defaultTextArea .scroll-pane .content{
+    -fx-background-color: transparent;
+}
+
+.defaultTextArea .scroll-pane {
+    -fx-hbar-policy : never;
+    -fx-vbar-policy : never;
 }
 
 .defaultLabel {

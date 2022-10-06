@@ -17,16 +17,18 @@ import ru.miron.nonstop.logic.util.json.JSON;
 public class UDPClient {
     public final InetSocketAddress serverSocketAddress;
     public final DatagramSocket serverSocket;
+    public long connectionTriesCount;
 
     private final static int BYTES_BUFFER_SIZE = 64 * 1024;
 
-    public UDPClient(Config config, int connectionTryWaiting) throws SocketException {
+    public UDPClient(Config config) throws SocketException {
         serverSocketAddress = new InetSocketAddress(config.hostname, config.port);
         if (serverSocketAddress.isUnresolved()) {
             throw new IllegalStateException();
         }
         serverSocket = new DatagramSocket();
-        serverSocket.setSoTimeout(connectionTryWaiting);
+        serverSocket.setSoTimeout(config.connectionTryWaiting);
+        connectionTriesCount = config.connectionTriesCount;
     }
     
     public void send(Command command) throws IOException {
@@ -34,8 +36,6 @@ public class UDPClient {
         System.out.println("command string to send: " + commandJSONString);
         serverSocket.send(genSendPacket(commandJSONString));
     }
-
-    final static int triesCount = 3;
 
     public String receiveString() throws IOException {
         byte[] receivingDataBuffer = new byte[BYTES_BUFFER_SIZE];
@@ -60,7 +60,7 @@ public class UDPClient {
      */
     public String tryToGetStringAnswer(Command commandToSend) throws ConnectException {
         String answer = null;
-        for (int i = 0; i < triesCount; i++) {
+        for (int i = 0; i < connectionTriesCount; i++) {
             try {
                 send(commandToSend);
                 answer = receiveString();

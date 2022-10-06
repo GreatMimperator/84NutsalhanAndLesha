@@ -1,7 +1,9 @@
 package ru.miron.nonstop.givenClasses;
 
+import java.time.ZonedDateTime;
 import java.util.Map;
 
+import javafx.beans.property.*;
 import ru.miron.nonstop.logic.util.json.JSONConvertable;
 import ru.miron.nonstop.logic.util.json.types.JSONValue;
 import ru.miron.nonstop.logic.util.json.types.values.JSONMap;
@@ -130,4 +132,60 @@ public class DragonWithKeyAndOwner implements JSONConvertable {
     public boolean hasKey() {
         return key != null; 
     }
+
+    public String ownerProperty() {
+        return ownerLogin;
+    }
+
+    public LongProperty idProperty() {
+        return new SimpleLongProperty(dragon.getId());
+    }
+
+    public StringProperty nameProperty() {
+        return new SimpleStringProperty(dragon.getName());
+    }
+
+    public FloatProperty xProperty() {
+        return new SimpleFloatProperty(dragon.getCoordinates().getX());
+    }
+
+    public LongProperty yProperty() {
+        return new SimpleLongProperty(dragon.getCoordinates().getY());
+    }
+
+    public ObjectProperty<ZonedDateTime> dateProperty() {
+        return new SimpleObjectProperty<>(dragon.getCreationDate());
+    }
+
+    public LongProperty ageProperty() {
+        return new SimpleLongProperty(dragon.getAge());
+    }
+
+    public StringProperty descriptionProperty() {
+        return new SimpleStringProperty(dragon.getDescription());
+    }
+
+    public IntegerProperty wingspanProperty() {
+        return new SimpleIntegerProperty(dragon.getWingspan());
+    }
+
+    public StringProperty typeProperty() {
+        return new SimpleStringProperty(getCapitalizedType());
+    }
+
+    public FloatProperty treasuresProperty() {
+        return new SimpleFloatProperty(dragon.getCave().getNumberOfTreasures());
+    }
+
+    public String getCapitalizedType() {
+        return capitalize(dragon.getType().getName());
+    }
+
+    private static String capitalize(String str) {
+        if(str == null || str.isEmpty()) {
+            return str;
+        }
+        return str.substring(0, 1).toUpperCase() + str.substring(1);
+    }
+
 }

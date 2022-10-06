@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+
+<VBox fx:id="commandsListPane" alignment="CENTER" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="ru.miron.nonstop.controllers.commands.CommandsListController" stylesheets="@../../styles/styles.css" spacing="10">
+    <padding>
+        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
+    </padding>
+    <Button fx:id="insertDragonButton" styleClass="defaultButton" onAction="#insertDragonActionHandler"/>
+    <Button fx:id="dragonsInfoGettingButton" styleClass="defaultButton" onAction="#dragonsInfoGettingBtnActionHandler"/>
+    <Button fx:id="dragonsGettingButton" styleClass="defaultButton, bigButton" onAction="#dragonsGettingBtnActionHandler" defaultButton="true"/>
+    <Button fx:id="backButton" styleClass="defaultButton, superBigButton" onAction="#backBtnActionHandler" />
+</VBox>

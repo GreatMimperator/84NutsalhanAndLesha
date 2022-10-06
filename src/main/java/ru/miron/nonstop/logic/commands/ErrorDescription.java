@@ -40,7 +40,7 @@ public class ErrorDescription {
         }
     }
 
-    public static enum ErrorType {
+    public enum ErrorType {
         KEY_NOT_FOUND,
         KEY_VALUE_HAS_ILLEGAL_TYPE,
         KEY_VALUE_IS_OUT_OF_BOUNDS,

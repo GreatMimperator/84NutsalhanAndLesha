@@ -21,6 +21,9 @@ public class LocaleBundleLoader {
         var bundleList = new LinkedList<String[]>();
         while (bundleScanner.hasNextLine()) {
             var nextLine = bundleScanner.nextLine();
+            if (nextLine.isBlank()) {
+                continue;
+            }
             var splitted = nextLine.split("=");
             if (splitted.length != 2) {
                 throw new IllegalStateException();
