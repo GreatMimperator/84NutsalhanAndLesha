@@ -24,6 +24,7 @@ public class LocaleBundleLoader {
             if (nextLine.isBlank()) {
                 continue;
             }
+            nextLine = nextLine.split("\\/\\/")[0];
             var splitted = nextLine.split("=");
             if (splitted.length != 2) {
                 throw new IllegalStateException();

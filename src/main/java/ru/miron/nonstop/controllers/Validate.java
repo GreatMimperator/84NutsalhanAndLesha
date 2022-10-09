@@ -3,12 +3,21 @@ package ru.miron.nonstop.controllers;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.text.Text;
+import ru.miron.nonstop.locales.AppLocaleManager;
 import ru.miron.nonstop.locales.ElementsLocaleSetter;
+import ru.miron.nonstop.locales.entities.LabelText;
 
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
+import static ru.miron.nonstop.controllers.Validate.LabelErrorVariant.*;
+import static ru.miron.nonstop.locales.entities.LabelText.TextType.LABEL_NAME;
+import static ru.miron.nonstop.locales.entities.LabelText.TextType.PLAIN_TEXT;
 
 public class Validate {
     public enum LabelErrorVariant { // todo: do
+        NONE,
         BLANK,
         TOO_BIG,
         TOO_SMALL,
@@ -16,632 +25,522 @@ public class Validate {
         NOT_EVEN_NUMBER,
         NOT_POSITIVE,
         NEGATIVE,
-        FLOAT
+        FLOAT;
     }
 
-    public enum LoginErrorLabelVariant {
-        BLANK, TOO_BIG, TOO_SMALL
+    @FunctionalInterface
+    public interface ErrorLabelInCurrentLanguageSetter {
+        /**
+         * @param errorLabelFormatter can be null if nothing to format
+         * @throws IllegalStateException if errorVariantToSet is NONE
+         * @throws IllegalArgumentException if errorVariantToSet has illegal variant
+         */
+        void setErrorLabelInCurrentLanguage(Label errorLabel, LabelErrorVariant errorVariantToSet, UnaryOperator<String> errorLabelFormatter) throws IllegalStateException, IllegalArgumentException;
     }
 
-    public enum PasswordErrorLabelVariant {
-        BLANK, TOO_SMALL
-    }
-
-
-    public enum ConfirmPasswordErrorLabelVariant {
-        BLANK, NOT_EQUALS_TO_PASSWORD
-    }
-
-    public enum SimpleStringErrorLabelVariant {
-        BLANK, TOO_BIG
-    }
-
-    public enum PositiveWholeNumberErrorLabelVariant {
-        BLANK, NOT_EVEN_NUMBER, NOT_POSITIVE, FLOAT, TOO_BIG
-    }
-
-    public enum WholeNumberErrorLabelVariant {
-        BLANK, NOT_EVEN_NUMBER, FLOAT, TOO_BIG
-    }
-
-    public enum NotNegativeFloatErrorLabelVariant {
-        BLANK, NOT_EVEN_NUMBER, NEGATIVE
-    }
-
-    public enum FloatErrorLabelVariant {
-        BLANK, NOT_EVEN_NUMBER
-    }
-
-    /**
-     * @return null if hasn't problems with login. Sets login error label text if has and returns error variant
-     */
-    public static LoginErrorLabelVariant validateLoginAndShowTextLabelWithErrorIfBad(TextField loginField, Label loginErrorLabel) {
-        return validateLoginAndShowTextLabelWithErrorIfBad(
-                getLogin(loginField),
-                loginErrorLabel);
-    }
-
-    /**
-     * @return null if hasn't problems with login. Sets login error label text if has and returns error variant
-     */
-    public static LoginErrorLabelVariant validateLoginAndShowTextLabelWithErrorIfBad(String login, Label loginErrorLabel) {
-        LoginErrorLabelVariant errorVariant = null;
-        if (login.isEmpty()) {
-            errorVariant = LoginErrorLabelVariant.BLANK;
-        } else if (login.length() > 80) {
-            errorVariant = LoginErrorLabelVariant.TOO_BIG;
-        } else if (login.length() < 5) {
-            errorVariant = LoginErrorLabelVariant.TOO_SMALL;
-        }
-        if (errorVariant != null) {
-            setLoginErrorLabelInCurrentLanguage(loginErrorLabel, errorVariant);
-            loginErrorLabel.setVisible(true);
+    public static void setLabelVisibility(Label errorLabel, LabelErrorVariant labelErrorVariant) {
+        if (labelErrorVariant != NONE) {
+            errorLabel.setVisible(true);
         } else {
-            loginErrorLabel.setVisible(false);
+            errorLabel.setVisible(false);
         }
+    }
+
+    /**
+     * @throws IllegalStateException if labelErrorVariant is NONE
+     */
+    public static void checkErrorLabelOnVariantContain(LabelErrorVariant labelErrorVariant) throws IllegalStateException {
+        if (labelErrorVariant == NONE) {
+            throw new IllegalStateException("error label variant shouldn't be NONE");
+        }
+    }
+
+    public static class ValidatorAndLocaledErrorLabelSetterWithFormat {
+        private Function<String, LabelErrorVariant> validator;
+        private ErrorLabelInCurrentLanguageSetter errorLabelInCurrentLanguageSetter;
+        private UnaryOperator<String> errorLabelFormatter;
+
+        public ValidatorAndLocaledErrorLabelSetterWithFormat(
+                Function<String, LabelErrorVariant> validator,
+                ErrorLabelInCurrentLanguageSetter errorLabelInCurrentLanguageSetter,
+                UnaryOperator<String> errorLabelFormatter) {
+            this.validator = validator;
+            this.errorLabelInCurrentLanguageSetter = errorLabelInCurrentLanguageSetter;
+            this.errorLabelFormatter = errorLabelFormatter;
+        }
+
+        /**
+         * @param errorLabelFormatter can be null if nothing to format
+         * @throws IllegalArgumentException if validator returned illegal value
+         * @throws IllegalStateException if labelErrorVariant is NONE
+         */
+        public LabelErrorVariant validateAndSetErrorLabelVisibility(TextField fieldValueToValidate, Label errorLabel) {
+            return Validate.validateAndSetErrorLabelVisibility(fieldValueToValidate, errorLabel, validator, errorLabelInCurrentLanguageSetter, errorLabelFormatter);
+        }
+
+        public LabelErrorVariant validateAndSetErrorLabelVisibility(String valueToValidate, Label errorLabel) {
+            return Validate.validateAndSetErrorLabelVisibility(valueToValidate, errorLabel, validator, errorLabelInCurrentLanguageSetter, errorLabelFormatter);
+        }
+    }
+
+    public static class FieldValidateProcess {
+        private TextField fieldValueToValidate = null;
+        private Label errorLabel = null;
+        private Function<String, LabelErrorVariant> validator;
+        private ErrorLabelInCurrentLanguageSetter errorLabelInCurrentLanguageSetter;
+        private UnaryOperator<String> errorLabelFormatter = null;
+
+        /**
+         * @throws IllegalArgumentException if any (except of errorLabelFormatter)
+         */
+        private FieldValidateProcess(
+                Function<String, LabelErrorVariant> validator,
+                ErrorLabelInCurrentLanguageSetter errorLabelInCurrentLanguageSetter,
+                UnaryOperator<String> errorLabelFormatter) throws IllegalArgumentException {
+           if (validator == null || errorLabelInCurrentLanguageSetter == null) {
+               throw new IllegalArgumentException();
+           }
+           this.validator = validator;
+           this.errorLabelInCurrentLanguageSetter = errorLabelInCurrentLanguageSetter;
+           this.errorLabelFormatter = errorLabelFormatter;
+        }
+
+        /**
+         * @throws IllegalArgumentException if validator returned illegal value or required to set fields (fieldValueToValidate, errorLabel) is null
+         * @throws IllegalStateException if labelErrorVariant is NONE
+         */
+        public LabelErrorVariant validateAndSetErrorLabelVisibility() throws IllegalArgumentException, IllegalStateException {
+            if (fieldValueToValidate == null || errorLabel == null) {
+                throw new IllegalArgumentException("Required fields is null");
+            }
+            return Validate.validateAndSetErrorLabelVisibility(
+                    fieldValueToValidate,
+                    errorLabel,
+                    validator,
+                    errorLabelInCurrentLanguageSetter,
+                    errorLabelFormatter);
+        }
+
+        public void setErrorLabelInCurrentLanguage(LabelErrorVariant labelErrorVariant) {
+            errorLabelInCurrentLanguageSetter.setErrorLabelInCurrentLanguage(errorLabel, labelErrorVariant, errorLabelFormatter);
+        }
+
+        public void setFieldValueToValidate(TextField fieldValueToValidate) {
+            this.fieldValueToValidate = fieldValueToValidate;
+        }
+
+        public void setErrorLabel(Label errorLabel) {
+            this.errorLabel = errorLabel;
+        }
+
+        public static class FieldValidateProcessBuilder {
+            private Function<String, LabelErrorVariant> validator;
+            private ErrorLabelInCurrentLanguageSetter errorLabelInCurrentLanguageSetter;
+            private UnaryOperator<String> errorLabelFormatter;
+
+            public FieldValidateProcessBuilder() {
+                validator = null;
+                errorLabelInCurrentLanguageSetter = null;
+                errorLabelFormatter = null;
+            }
+
+            /**
+             * @throws IllegalStateException if either of validator or errorLabelInCurrentLanguageSetter fields is null
+             */
+            public FieldValidateProcess build() throws IllegalStateException {
+                if (validator == null || errorLabelInCurrentLanguageSetter == null) {
+                    throw new IllegalStateException("Any of required fields is null");
+                }
+                return new FieldValidateProcess(validator, errorLabelInCurrentLanguageSetter, errorLabelFormatter);
+            }
+
+            public FieldValidateProcessBuilder setValidator(Function<String, LabelErrorVariant> validator) {
+                this.validator = validator;
+                return this;
+            }
+
+            public FieldValidateProcessBuilder setErrorLabelInCurrentLanguageSetter(ErrorLabelInCurrentLanguageSetter errorLabelInCurrentLanguageSetter) {
+                this.errorLabelInCurrentLanguageSetter = errorLabelInCurrentLanguageSetter;
+                return this;
+            }
+
+            public FieldValidateProcessBuilder setErrorLabelFormatter(UnaryOperator<String> errorLabelFormatter) {
+                this.errorLabelFormatter = errorLabelFormatter;
+                return this;
+            }
+        }
+
+    }
+
+    /**
+     * @param errorLabelFormatter can be null if nothing to format
+     * @throws IllegalArgumentException if validator returned illegal value
+     * @throws IllegalStateException if labelErrorVariant is NONE
+     */
+    public static LabelErrorVariant validateAndSetErrorLabelVisibility(
+            TextField fieldValueToValidate,
+            Label errorLabel,
+            Function<String, LabelErrorVariant> validator,
+            ErrorLabelInCurrentLanguageSetter errorLabelInCurrentLanguageSetter,
+            UnaryOperator<String> errorLabelFormatter) throws IllegalArgumentException, IllegalStateException {
+        return validateAndSetErrorLabelVisibility(
+                fieldValueToValidate.getText(),
+                errorLabel,
+                validator,
+                errorLabelInCurrentLanguageSetter,
+                errorLabelFormatter);
+    }
+
+    /**
+     * @param errorLabelFormatter can be null if nothing to format
+     * @throws IllegalArgumentException if validator returned illegal value
+     */
+    public static LabelErrorVariant validateAndSetErrorLabelVisibility(
+            String valueToValidate,
+            Label errorLabel,
+            Function<String, LabelErrorVariant> validator,
+            ErrorLabelInCurrentLanguageSetter errorLabelInCurrentLanguageSetter,
+            UnaryOperator<String> errorLabelFormatter) {
+        LabelErrorVariant errorVariant = validator.apply(valueToValidate);
+        setErrorLabelInCurrentLanguageIfHasVariant(errorLabel, errorVariant, errorLabelInCurrentLanguageSetter, errorLabelFormatter);
+        setLabelVisibility(errorLabel, errorVariant);
         return errorVariant;
     }
 
-
-    public static void setLoginErrorLabelInCurrentLanguageIfHasVariant(Label loginErrorLabel, LoginErrorLabelVariant loginErrorLabelVariant) {
-        if (loginErrorLabelVariant != null) {
-            setLoginErrorLabelInCurrentLanguage(loginErrorLabel, loginErrorLabelVariant);
+    /**
+     * @param errorLabelFormatter can be null if nothing to format
+     * @throws IllegalArgumentException if variant has illegal value
+     */
+    public static void setErrorLabelInCurrentLanguageIfHasVariant(
+            Label loginErrorLabel,
+            LabelErrorVariant loginErrorLabelVariant,
+            ErrorLabelInCurrentLanguageSetter errorLabelInCurrentLanguageSetter,
+            UnaryOperator<String> errorLabelFormatter) throws IllegalArgumentException {
+        if (loginErrorLabelVariant != NONE) {
+            errorLabelInCurrentLanguageSetter.setErrorLabelInCurrentLanguage(loginErrorLabel, loginErrorLabelVariant, errorLabelFormatter);
         }
     }
 
     /**
-     * @throws IllegalStateException if variant is null
+     * @param errorLabelFormatter can be null if nothing to format
      */
-    public static void setLoginErrorLabelInCurrentLanguage(Label loginErrorLabel, LoginErrorLabelVariant loginErrorLabelVariant) throws IllegalStateException {
-        if (loginErrorLabelVariant == null) {
-            throw new IllegalStateException();
+    public static LabelText getFormattedStringErrorLabel(String labelName, UnaryOperator<String> errorLabelFormatter) {
+        String notFormattedString = AppLocaleManager.getTextByLabel(labelName);
+        if (errorLabelFormatter == null) {
+            return new LabelText(notFormattedString, PLAIN_TEXT);
         }
-        switch (loginErrorLabelVariant) {
-            case BLANK -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(loginErrorLabel, "loginErrorLabelIsBlank");
+        String formattedString = errorLabelFormatter.apply(notFormattedString);
+        return new LabelText(formattedString, PLAIN_TEXT);
+    }
+
+    public static class LabelsTextFactory {
+        public static void setFieldErrorLabelIsBlankLabel(Label errorLabel) {
+            ElementsLocaleSetter.setLabelTextInCurrentLanguage(errorLabel, getFieldErrorLabelIsBlank());
+        }
+
+        public static LabelText getFieldErrorLabelIsBlank() {
+            return new LabelText("fieldErrorLabelIsBlank", LABEL_NAME);
+        }
+
+
+        public static void setStringErrorLabelIsTooBigLabel(Label errorLabel, UnaryOperator<String> errorLabelFormatter) {
+            ElementsLocaleSetter.setLabelTextInCurrentLanguage(errorLabel, getStringErrorLabelTooBig(errorLabelFormatter));
+        }
+
+        public static LabelText getStringErrorLabelTooBig(UnaryOperator<String> errorLabelFormatter) {
+            String notFormattedString = AppLocaleManager.getTextByLabel("stringErrorLabelTooBig");
+            String formattedString = errorLabelFormatter.apply(notFormattedString);
+            return new LabelText(formattedString, PLAIN_TEXT);
+        }
+
+        public static void setStringErrorLabelIsTooSmallLabel(Label errorLabel, UnaryOperator<String> errorLabelFormatter) {
+            ElementsLocaleSetter.setLabelTextInCurrentLanguage(errorLabel, getStringErrorLabelTooSmall(errorLabelFormatter));
+        }
+
+        public static LabelText getStringErrorLabelTooSmall(UnaryOperator<String> errorLabelFormatter) {
+            String notFormattedString = AppLocaleManager.getTextByLabel("stringErrorLabelTooSmall");
+            String formattedString = errorLabelFormatter.apply(notFormattedString);
+            return new LabelText(formattedString, PLAIN_TEXT);
+        }
+    }
+
+    public static class Login {
+        /**
+         * @return BLANK (only empty symbols or nothing), TOO_BIG (len without corner empty symbols is over than 80) or TOO_SMALL (lower than 5),
+         * NONE if hasn't
+         */
+        public static LabelErrorVariant validate(String login) {
+            login = login.trim();
+            if (login.isEmpty()) {
+                return BLANK;
             }
-            case TOO_BIG -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(loginErrorLabel, "loginErrorLabelIsTooBig");
+            if (login.length() > 80) {
+                return TOO_BIG;
             }
-            case TOO_SMALL -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(loginErrorLabel, "loginErrorLabelIsTooSmall");
+            if (login.length() < 5) {
+                return TOO_SMALL;
             }
+            return NONE;
         }
-    }
 
-    /**
-     * @return null if hasn't problems with password. Sets password error label text if has and returns error variant
-     */
-    public static PasswordErrorLabelVariant validatePasswordAndShowTextLabelWithErrorIfBad(TextField passwordField, Label passwordErrorLabel) {
-        return validatePasswordAndShowTextLabelWithErrorIfBad(
-                getPassword(passwordField),
-                passwordErrorLabel);
-    }
-
-    /**
-     * @return null if hasn't problems with password. Sets password error label text if has and returns error variant
-     */
-    public static PasswordErrorLabelVariant validatePasswordAndShowTextLabelWithErrorIfBad(String password, Label passwordErrorLabel) {
-        PasswordErrorLabelVariant errorVariant = null;
-        if (password.isEmpty()) {
-            errorVariant = PasswordErrorLabelVariant.BLANK;
-        } else if (password.length() < 5) {
-            errorVariant = PasswordErrorLabelVariant.TOO_SMALL;
-        }
-        if (errorVariant != null) {
-            setPasswordErrorLabelInCurrentLanguage(passwordErrorLabel, errorVariant);
-            passwordErrorLabel.setVisible(true);
-        } else {
-            passwordErrorLabel.setVisible(false);
-        }
-        return errorVariant;
-    }
-
-    public static void setPasswordErrorLabelInCurrentLanguageIfHasVariant(Label passwordErrorLabel, PasswordErrorLabelVariant passwordErrorLabelVariant) {
-        if (passwordErrorLabelVariant != null) {
-            setPasswordErrorLabelInCurrentLanguage(passwordErrorLabel, passwordErrorLabelVariant);
-        }
-    }
-
-    /**
-     * @throws IllegalStateException if variant is null
-     */
-    public static void setPasswordErrorLabelInCurrentLanguage(Label passwordErrorLabel, PasswordErrorLabelVariant passwordErrorLabelVariant) throws IllegalStateException{
-        if (passwordErrorLabelVariant == null) {
-            throw new IllegalStateException();
-        }
-        switch (passwordErrorLabelVariant) {
-            case BLANK -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(passwordErrorLabel, "passwordErrorLabelIsBlank");
-            }
-            case TOO_SMALL -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(passwordErrorLabel, "passwordErrorLabelIsTooSmall");
-            }
-        }
-    }
-
-    /**
-     * @return null if hasn't problems with confirmPassword. Sets confirm password error label text if has and returns error variant
-     */
-    public static ConfirmPasswordErrorLabelVariant validateConfirmPasswordAndShowTextLabelWithErrorIfBad(TextField confirmPasswordField, TextField passwordField, Label confirmPasswordErrorLabel) {
-        return validateConfirmPasswordAndShowTextLabelWithErrorIfBad(
-                getPassword(confirmPasswordField),
-                getPassword(passwordField),
-                confirmPasswordErrorLabel);
-    }
-
-    /**
-     * @return null if hasn't problems with confirmPassword. Sets confirm password error label text if has and returns error variant
-     */
-    public static ConfirmPasswordErrorLabelVariant validateConfirmPasswordAndShowTextLabelWithErrorIfBad(String confirmPassword, String password, Label confirmPasswordErrorLabel) {
-        ConfirmPasswordErrorLabelVariant errorVariant = null;
-        if (confirmPassword.isEmpty()) {
-            errorVariant = ConfirmPasswordErrorLabelVariant.BLANK;
-        } else if (confirmPassword.equals(password) == false) {
-            errorVariant = ConfirmPasswordErrorLabelVariant.NOT_EQUALS_TO_PASSWORD;
-        }
-        if (errorVariant != null) {
-            setConfirmPasswordErrorLabelInCurrentLanguage(confirmPasswordErrorLabel, errorVariant);
-            confirmPasswordErrorLabel.setVisible(true);
-        } else {
-            confirmPasswordErrorLabel.setVisible(false);
-        }
-        return errorVariant;
-    }
-
-    public static void setConfirmPasswordErrorLabelInCurrentLanguageIfHasVariant(Label confirmPasswordErrorLabel, ConfirmPasswordErrorLabelVariant confirmPasswordErrorLabelVariant) {
-        if (confirmPasswordErrorLabelVariant != null) {
-            setConfirmPasswordErrorLabelInCurrentLanguage(confirmPasswordErrorLabel, confirmPasswordErrorLabelVariant);
-        }
-    }
-    /**
-     * @throws IllegalStateException if variant is null
-     */
-    public static void setConfirmPasswordErrorLabelInCurrentLanguage(Label confirmPasswordErrorLabel, ConfirmPasswordErrorLabelVariant confirmPasswordErrorLabelVariant) throws IllegalStateException {
-        if (confirmPasswordErrorLabelVariant == null) {
-            throw new IllegalStateException();
-        }
-        switch (confirmPasswordErrorLabelVariant) {
-            case BLANK -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(confirmPasswordErrorLabel, "confirmPasswordErrorLabelIsBlank");
-            }
-            case NOT_EQUALS_TO_PASSWORD -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(confirmPasswordErrorLabel, "confirmPasswordErrorLabelNotEqualsToPassword");
+        /**
+         * @throws IllegalStateException if variant is NONE
+         * @throws IllegalArgumentException if variant is not BLANK, TOO_BIG or TOO_SMALL
+         */
+        public static void setErrorLabelInCurrentLanguage(Label loginErrorLabel, LabelErrorVariant loginErrorVariantToSet, UnaryOperator<String> errorLabelFormatter) throws IllegalStateException, IllegalArgumentException {
+            Validate.checkErrorLabelOnVariantContain(loginErrorVariantToSet);
+            switch (loginErrorVariantToSet) {
+                case BLANK -> LabelsTextFactory.setFieldErrorLabelIsBlankLabel(loginErrorLabel);
+                case TOO_BIG -> LabelsTextFactory.setStringErrorLabelIsTooBigLabel(loginErrorLabel, errorLabelFormatter);
+                case TOO_SMALL -> LabelsTextFactory.setStringErrorLabelIsTooSmallLabel(loginErrorLabel, errorLabelFormatter);
+                default -> throw new IllegalArgumentException("Wrong enum value");
             }
         }
     }
 
-    /**
-     * do nothing if variant is null
-     */
-    public static void setSimpleStringErrorLabelInCurrentLanguageIfHasVariant(Label simpleStringErrorLabel, SimpleStringErrorLabelVariant simpleStringErrorLabelVariant, int maxLength) {
-        if (simpleStringErrorLabelVariant != null) {
-            setSimpleStringErrorLabelInCurrentLanguage(simpleStringErrorLabel, simpleStringErrorLabelVariant, maxLength);
-        }
-    }
 
-    /**
-     * @throws IllegalStateException if variant is null
-     */
-    public static void setSimpleStringErrorLabelInCurrentLanguage(Label simpleStringErrorLabel, SimpleStringErrorLabelVariant simpleStringErrorLabelVariant, int maxLength) throws  IllegalStateException {
-        if (simpleStringErrorLabelVariant == null) {
-            throw new IllegalStateException();
-        }
-        switch (simpleStringErrorLabelVariant) {
-            case BLANK -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(simpleStringErrorLabel, "fieldErrorLabelIsBlank");
+    public static class Password {
+        /**
+         * @return BLANK (only empty symbols or nothing) or TOO_SMALL (len without corner empty symbols is lower than 5),
+         * NONE if hasn't
+         */
+        public static LabelErrorVariant validate(String password) {
+            password = password.trim();
+            if (password.isEmpty()) {
+                return BLANK;
             }
-            case TOO_BIG -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(simpleStringErrorLabel, String.format("stringErrorLabelTooBig", maxLength));
+            if (password.length() < 5) {
+                return TOO_SMALL;
             }
+            return NONE;
+        }
+
+        /**
+         * @throws IllegalStateException if variant is NONE
+         * @throws IllegalArgumentException if variant is not BLANK or TOO_SMALL
+         */
+        public static void setErrorLabelInCurrentLanguage(Label passwordErrorLabel, LabelErrorVariant passwordErrorLabelVariant, UnaryOperator<String> errorLabelFormatter) throws IllegalStateException, IllegalArgumentException  {
+            Validate.checkErrorLabelOnVariantContain(passwordErrorLabelVariant);
+            switch (passwordErrorLabelVariant) {
+                case BLANK -> LabelsTextFactory.setFieldErrorLabelIsBlankLabel(passwordErrorLabel);
+                case TOO_SMALL -> LabelsTextFactory.setStringErrorLabelIsTooSmallLabel(passwordErrorLabel, errorLabelFormatter);
+                default -> throw new IllegalArgumentException("Wrong enum value");
+            };
         }
     }
 
-    /**
-     * @return null if hasn't problems with login. Sets login error label text if has and returns error variant
-     */
-    public static SimpleStringErrorLabelVariant validateSimpleStringAndShowTextLabelWithErrorIfBad(TextField textField, Label simpleStringErrorLabel, int maxLength) {
-        return validateSimpleStringAndShowTextLabelWithErrorIfBad(textField.getText(), simpleStringErrorLabel, maxLength);
-    }
 
-    /**
-     * @return null if hasn't problems with login. Sets login error label text if has and returns error variant
-     */
-    public static SimpleStringErrorLabelVariant validateSimpleStringAndShowTextLabelWithErrorIfBad(String string, Label simpleStringErrorLabel, int maxLength) {
-        SimpleStringErrorLabelVariant errorVariant = validateSimpleString(string, maxLength);
-        if (errorVariant != null) {
-            setSimpleStringErrorLabelInCurrentLanguage(simpleStringErrorLabel, errorVariant, maxLength);
-            simpleStringErrorLabel.setVisible(true);
-        } else {
-            simpleStringErrorLabel.setVisible(false);
-        }
-        return errorVariant;
-    }
-
-    public static SimpleStringErrorLabelVariant validateSimpleStringField(TextField textField, int maxLength) {
-        return validateSimpleString(textField.getText(), maxLength);
-    }
-
-    public static SimpleStringErrorLabelVariant validateSimpleString(String string, int maxLength) {
-        string = string.trim();
-        if (string.isBlank()) {
-            return SimpleStringErrorLabelVariant.BLANK;
-        }
-        if (string.length() > maxLength) {
-            return SimpleStringErrorLabelVariant.TOO_BIG;
-        }
-        return null;
-    }
-
-    public static String numberPattern = "^-?\\d+\\.?\\d*$";
-    public static String negativeNumberPattern = "^-\\d+\\.?\\d*$";
-    public static String floatNumberPattern = "^-?\\d+\\.\\d*$";
-
-    /**
-     * @return null if hasn't problems with login. Sets login error label text if has and returns error variant
-     */
-    public static PositiveWholeNumberErrorLabelVariant validatePositiveIntegerAndShowTextLabelWithErrorIfBad(TextField textField, Label integerErrorLabel) {
-        return validatePositiveIntegerAndShowTextLabelWithErrorIfBad(textField.getText(), integerErrorLabel);
-    }
-
-    /**
-     * @return null if hasn't problems with login. Sets login error label text if has and returns error variant
-     */
-    public static PositiveWholeNumberErrorLabelVariant validatePositiveIntegerAndShowTextLabelWithErrorIfBad(String string, Label integerErrorLabel) {
-        PositiveWholeNumberErrorLabelVariant errorVariant = validatePositiveInteger(string);
-        if (errorVariant != null) {
-            setPositiveWholeNumberErrorLabelInCurrentLanguageIfHasVariant(integerErrorLabel, errorVariant);
-            integerErrorLabel.setVisible(true);
-        } else {
-            integerErrorLabel.setVisible(false);
-        }
-        return errorVariant;
-    }
-
-    public static PositiveWholeNumberErrorLabelVariant validatePositiveInteger(TextField textField) {
-        return validatePositiveInteger(textField.getText());
-    }
-
-    public static PositiveWholeNumberErrorLabelVariant validatePositiveInteger(String positiveIntegerAsString) {
-        positiveIntegerAsString = positiveIntegerAsString.trim();
-        var checksWithoutParseCheck = validatePositiveWholeNumberFieldWithoutParseCheck(positiveIntegerAsString);
-        if (checksWithoutParseCheck != null) {
-            return checksWithoutParseCheck;
-        }
-        try {
-            Integer.parseInt(positiveIntegerAsString);
-        } catch (NumberFormatException e) {
-            return PositiveWholeNumberErrorLabelVariant.TOO_BIG;
-        }
-        return null;
-    }
-
-    /**
-     * @return null if hasn't problems with login. Sets login error label text if has and returns error variant
-     */
-    public static PositiveWholeNumberErrorLabelVariant validatePositiveLongAndShowTextLabelWithErrorIfBad(TextField textField, Label longErrorLabel) {
-        return validatePositiveLongAndShowTextLabelWithErrorIfBad(textField.getText(), longErrorLabel);
-    }
-
-    /**
-     * @return null if hasn't problems with login. Sets login error label text if has and returns error variant
-     */
-    public static PositiveWholeNumberErrorLabelVariant validatePositiveLongAndShowTextLabelWithErrorIfBad(String string, Label longErrorLabel) {
-        PositiveWholeNumberErrorLabelVariant errorVariant = validatePositiveLong(string);
-        if (errorVariant != null) {
-            setPositiveWholeNumberErrorLabelInCurrentLanguageIfHasVariant(longErrorLabel, errorVariant);
-            longErrorLabel.setVisible(true);
-        } else {
-            longErrorLabel.setVisible(false);
-        }
-        return errorVariant;
-    }
-
-    public static PositiveWholeNumberErrorLabelVariant validatePositiveLongField(TextField positiveIntegerField) {
-        return validatePositiveLong(positiveIntegerField.toString());
-    }
-
-    public static PositiveWholeNumberErrorLabelVariant validatePositiveLong(String positiveLongAsString) {
-        positiveLongAsString = positiveLongAsString.trim();
-        var checksWithoutParseCheck = validatePositiveWholeNumberFieldWithoutParseCheck(positiveLongAsString);
-        if (checksWithoutParseCheck != null) {
-            return checksWithoutParseCheck;
-        }
-        try {
-            Long.parseLong(positiveLongAsString);
-        } catch (NumberFormatException e) {
-            return PositiveWholeNumberErrorLabelVariant.TOO_BIG;
-        }
-        return null;
-    }
-
-
-    private static PositiveWholeNumberErrorLabelVariant validatePositiveWholeNumberFieldWithoutParseCheck(TextField positiveWholeNumberField) {
-        return validatePositiveWholeNumberFieldWithoutParseCheck(positiveWholeNumberField.getText());
-    }
-
-    private static PositiveWholeNumberErrorLabelVariant validatePositiveWholeNumberFieldWithoutParseCheck(String positiveWholeNumberAsString) {
-        positiveWholeNumberAsString = positiveWholeNumberAsString.trim();
-        if (positiveWholeNumberAsString.isEmpty()) {
-            return PositiveWholeNumberErrorLabelVariant.BLANK;
-        }
-        if (!Pattern.matches(numberPattern, positiveWholeNumberAsString)) {
-            return PositiveWholeNumberErrorLabelVariant.NOT_EVEN_NUMBER;
-        }
-        if (Pattern.matches(negativeNumberPattern, positiveWholeNumberAsString)) {
-            return PositiveWholeNumberErrorLabelVariant.NOT_POSITIVE;
-        }
-        if (Pattern.matches(floatNumberPattern, positiveWholeNumberAsString)) {
-            return PositiveWholeNumberErrorLabelVariant.FLOAT;
-        }
-        return null;
-    }
-
-
-    /**
-     * do nothing if variant is null
-     */
-    public static void setPositiveWholeNumberErrorLabelInCurrentLanguageIfHasVariant(Label positiveWholeNumberErrorLabel, PositiveWholeNumberErrorLabelVariant positiveWholeNumberErrorLabelVariant) {
-        if (positiveWholeNumberErrorLabelVariant != null) {
-            setPositiveWholeNUmberErrorLabelInCurrentLanguage(positiveWholeNumberErrorLabel, positiveWholeNumberErrorLabelVariant);
-        }
-    }
-
-    /**
-     * @throws IllegalStateException if variant is null
-     */
-    public static void setPositiveWholeNUmberErrorLabelInCurrentLanguage(Label positiveWholeNumberErrorLabel, PositiveWholeNumberErrorLabelVariant positiveWholeNumberErrorLabelVariant) throws IllegalStateException {
-        if (positiveWholeNumberErrorLabelVariant == null) {
-            throw new IllegalStateException();
-        }
-        switch (positiveWholeNumberErrorLabelVariant) {
-            case BLANK -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(positiveWholeNumberErrorLabel, "fieldErrorLabelIsBlank");
+    public static class ConfirmPassword {
+        /**
+         * @return BLANK (only empty symbols or nothing) or TOO_SMALL (len without corner empty symbols is lower than 5),
+         * NONE if hasn't
+         */
+        public static LabelErrorVariant validate(String repeatedPassword) {
+            repeatedPassword = repeatedPassword.trim();
+            if (repeatedPassword.isEmpty()) {
+                return BLANK;
             }
-            case NOT_EVEN_NUMBER -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(positiveWholeNumberErrorLabel, "numberErrorLabelNotNumber");
+            if (repeatedPassword.length() < 5) {
+                return TOO_SMALL;
             }
-            case NOT_POSITIVE -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(positiveWholeNumberErrorLabel, "numberErrorLabelNotPositive");
-            }
-            case FLOAT -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(positiveWholeNumberErrorLabel, "numberErrorLabelIsFloat");
-            }
-            case TOO_BIG -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(positiveWholeNumberErrorLabel, "numberErrorLabelTooBig");
+            return NONE;
+        }
+
+        /**
+         * @throws IllegalStateException if variant is NONE
+         * @throws IllegalArgumentException if variant is not BLANK or TOO_SMALL
+         */
+        public static void setErrorLabelInCurrentLanguage(Label passwordErrorLabel, LabelErrorVariant passwordErrorLabelVariant, UnaryOperator<String> errorLabelFormatter) throws IllegalStateException, IllegalArgumentException {
+            Validate.checkErrorLabelOnVariantContain(passwordErrorLabelVariant);
+            switch (passwordErrorLabelVariant) {
+                case BLANK -> LabelsTextFactory.setFieldErrorLabelIsBlankLabel(passwordErrorLabel);
+                case TOO_SMALL -> LabelsTextFactory.setStringErrorLabelIsTooSmallLabel(passwordErrorLabel, errorLabelFormatter);
+                case NOT_EQUALS_TO -> ElementsLocaleSetter.setLabelTextInCurrentLanguage(passwordErrorLabel, "confirmPasswordErrorLabelNotEqualsToPassword");
+                default -> throw new IllegalArgumentException("Wrong enum value");
+            };
+        }
+    }
+
+
+    public static class SimpleString {
+        public static LabelErrorVariant validateIfBlank(String string) {
+            return string.isBlank() ? BLANK : NONE;
+        }
+
+        /**
+         * @throws IllegalStateException if variant is NONE
+         * @throws IllegalArgumentException if variant is not BLANK, TOO_SMALL or TOO_BIG
+         */
+        public static void setErrorLabelInCurrentLanguage(Label simpleStringErrorLabel, LabelErrorVariant simpleStringErrorLabelVariant, UnaryOperator<String> errorLabelFormatter) throws IllegalStateException, IllegalArgumentException {
+            Validate.checkErrorLabelOnVariantContain(simpleStringErrorLabelVariant);
+            switch (simpleStringErrorLabelVariant) {
+                case BLANK -> LabelsTextFactory.setFieldErrorLabelIsBlankLabel(simpleStringErrorLabel);
+                case TOO_BIG -> LabelsTextFactory.setStringErrorLabelIsTooBigLabel(simpleStringErrorLabel, errorLabelFormatter);
+                case TOO_SMALL -> LabelsTextFactory.setStringErrorLabelIsTooSmallLabel(simpleStringErrorLabel, errorLabelFormatter);
+                default -> throw new IllegalArgumentException("Wrong enum value");
             }
         }
     }
 
     /**
-     * @return null if hasn't problems with login. Sets login error label text if has and returns error variant
+     * @returns labelErrorVariantBeforeCheck if trimmedString is not blank or labelErrorVariantBeforeCheck is not NONE
+     * @param validator validates String, returns NONE if ok, variant of error else
+     * @throws IllegalArgumentException if labelErrorVariantBeforeCheck is null
      */
-    public static WholeNumberErrorLabelVariant validateLongAndShowTextLabelWithErrorIfBad(TextField textField, Label longErrorLabel) {
-        return validateLongAndShowTextLabelWithErrorIfBad(textField.getText(), longErrorLabel);
+    public static LabelErrorVariant validateIfNone(Function<String, LabelErrorVariant> validator, String stringToValidate, LabelErrorVariant labelErrorVariantBeforeCheck) throws IllegalArgumentException {
+        if (labelErrorVariantBeforeCheck == null) {
+            throw new IllegalArgumentException("Shouldn't be null");
+        }
+        if (labelErrorVariantBeforeCheck != NONE) {
+            return labelErrorVariantBeforeCheck;
+        }
+        return validator.apply(stringToValidate);
     }
 
-    /**
-     * @return null if hasn't problems with login. Sets login error label text if has and returns error variant
-     */
-    public static WholeNumberErrorLabelVariant validateLongAndShowTextLabelWithErrorIfBad(String string, Label longErrorLabel) {
-        WholeNumberErrorLabelVariant errorVariant = validateLong(string);
-        if (errorVariant != null) {
-            setWholeNumberErrorLabelInCurrentLanguageIfHasVariant(longErrorLabel, errorVariant);
-            longErrorLabel.setVisible(true);
-        } else {
-            longErrorLabel.setVisible(false);
-        }
-        return errorVariant;
-    }
+    public static class Numbers {
+        public static String numberPattern = "^-?(0|[1-9]\\d+)\\.?\\d*$";
+        public static String floatNumberPattern = "^-?(0|[1-9]\\d+)\\.\\d+$";
 
-    public static WholeNumberErrorLabelVariant validateLongField(TextField longField) {
-        return validateLong(longField.toString());
-    }
-
-    public static WholeNumberErrorLabelVariant validateLong(String positiveLongAsString) {
-        positiveLongAsString = positiveLongAsString.trim();
-        var checksWithoutParseCheck = validateWholeNumberFieldWithoutParseCheck(positiveLongAsString);
-        if (checksWithoutParseCheck != null) {
-            return checksWithoutParseCheck;
+        /**
+         * @param trimmedString is trimmed string
+         * @return checks only is number (NOT_EVEN_NUMBER)
+         */
+        public static LabelErrorVariant validateNumber(String trimmedString) {
+            return Pattern.matches(numberPattern, trimmedString) ? NONE : NOT_EVEN_NUMBER;
         }
-        try {
-            Long.parseLong(positiveLongAsString);
-        } catch (NumberFormatException e) {
-            return WholeNumberErrorLabelVariant.TOO_BIG;
-        }
-        return null;
-    }
 
-
-    private static WholeNumberErrorLabelVariant validateWholeNumberFieldWithoutParseCheck(TextField wholeNumberField) {
-        return validateWholeNumberFieldWithoutParseCheck(wholeNumberField.getText());
-    }
-
-    private static WholeNumberErrorLabelVariant validateWholeNumberFieldWithoutParseCheck(String wholeNumberAsString) {
-        wholeNumberAsString = wholeNumberAsString.trim();
-        if (wholeNumberAsString.isEmpty()) {
-            return WholeNumberErrorLabelVariant.BLANK;
+        /**
+         * @param trimmedString is trimmed string
+         * @return checks only is negative number (FLOAT)
+         */
+        public static LabelErrorVariant validateNotFloat(String trimmedString) {
+            return Pattern.matches(floatNumberPattern, trimmedString) ? FLOAT : NONE;
         }
-        if (!Pattern.matches(numberPattern, wholeNumberAsString)) {
-            return WholeNumberErrorLabelVariant.NOT_EVEN_NUMBER;
-        }
-        if (Pattern.matches(floatNumberPattern, wholeNumberAsString)) {
-            return WholeNumberErrorLabelVariant.FLOAT;
-        }
-        return null;
-    }
 
-
-    /**
-     * do nothing if variant is null
-     */
-    public static void setWholeNumberErrorLabelInCurrentLanguageIfHasVariant(Label wholeNumberErrorLabel, WholeNumberErrorLabelVariant wholeNumberErrorLabelVariant) {
-        if (wholeNumberErrorLabelVariant != null) {
-            setWholeNumberErrorLabelInCurrentLanguage(wholeNumberErrorLabel, wholeNumberErrorLabelVariant);
-        }
-    }
-
-    /**
-     * @throws IllegalStateException if variant is null
-     */
-    public static void setWholeNumberErrorLabelInCurrentLanguage(Label wholeNumberErrorLabel, WholeNumberErrorLabelVariant wholeNumberErrorLabelVariant) throws IllegalStateException {
-        if (wholeNumberErrorLabelVariant == null) {
-            throw new IllegalStateException();
-        }
-        switch (wholeNumberErrorLabelVariant) {
-            case BLANK -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(wholeNumberErrorLabel, "fieldErrorLabelIsBlank");
-            }
-            case NOT_EVEN_NUMBER -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(wholeNumberErrorLabel, "numberErrorLabelNotNumber");
-            }
-            case FLOAT -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(wholeNumberErrorLabel, "numberErrorLabelIsFloat");
-            }
-            case TOO_BIG -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(wholeNumberErrorLabel, "numberErrorLabelTooBig");
+        /**
+         * tries to parse as long
+         */
+        public static LabelErrorVariant validateNumberNotFloatOnLongBound(String numberString) {
+            try {
+                Long.parseLong(numberString);
+                return NONE;
+            } catch (NumberFormatException e) {
+                return TOO_BIG;
             }
         }
-    }
 
-    /**
-     * @return null if hasn't problems with login. Sets login error label text if has and returns error variant
-     */
-    public static NotNegativeFloatErrorLabelVariant validateNotNegativeFloatFieldAndShowTextLabelWithErrorIfBad(TextField textField, Label notNegativeFloatErrorLabel) {
-        return validateNotNegativeFloatAndShowTextLabelWithErrorIfBad(textField.getText(), notNegativeFloatErrorLabel);
-    }
-
-    /**
-     * @return null if hasn't problems with login. Sets login error label text if has and returns error variant
-     */
-    public static NotNegativeFloatErrorLabelVariant validateNotNegativeFloatAndShowTextLabelWithErrorIfBad(String string, Label notNegativeFloatErrorLabel) {
-        NotNegativeFloatErrorLabelVariant errorVariant = validateNotNegativeFloatField(string);
-        if (errorVariant != null) {
-            setNotNegativeFloatErrorLabelInCurrentLanguageIfHasVariant(notNegativeFloatErrorLabel, errorVariant);
-            notNegativeFloatErrorLabel.setVisible(true);
-        } else {
-            notNegativeFloatErrorLabel.setVisible(false);
-        }
-        return errorVariant;
-    }
-
-    public static NotNegativeFloatErrorLabelVariant validateNotNegativeFloatField(TextField floatField) {
-        return validateNotNegativeFloatField(floatField.getText());
-    }
-    public static NotNegativeFloatErrorLabelVariant validateNotNegativeFloatField(String floatAsString) {
-        floatAsString = floatAsString.trim();
-        if (floatAsString.isEmpty()) {
-            return NotNegativeFloatErrorLabelVariant.BLANK;
-        }
-        try {
-            var floatNumber = Float.parseFloat(floatAsString);
-            if (floatNumber < 0) {
-                return NotNegativeFloatErrorLabelVariant.NEGATIVE;
-            }
-        } catch (NumberFormatException e) {
-            return NotNegativeFloatErrorLabelVariant.NOT_EVEN_NUMBER;
-        }
-        return null;
-    }
-
-    /**
-     * do nothing if variant is null
-     */
-    public static void setNotNegativeFloatErrorLabelInCurrentLanguageIfHasVariant(Label floatErrorLabel, NotNegativeFloatErrorLabelVariant notNegativeFloatErrorLabelVariant) {
-        if (notNegativeFloatErrorLabelVariant != null) {
-            setNonNegativeFloatErrorLabelInCurrentLanguage(floatErrorLabel, notNegativeFloatErrorLabelVariant);
-        }
-    }
-
-    /**
-     * @throws IllegalStateException if variant is null
-     */
-    public static void setNonNegativeFloatErrorLabelInCurrentLanguage(Label floatErrorLabel, NotNegativeFloatErrorLabelVariant notNegativeFloatErrorLabelVariant) throws IllegalStateException {
-        if (notNegativeFloatErrorLabelVariant == null) {
-            throw new IllegalStateException();
-        }
-        switch (notNegativeFloatErrorLabelVariant) {
-            case BLANK -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(floatErrorLabel, "fieldErrorLabelIsBlank");
-            }
-            case NOT_EVEN_NUMBER -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(floatErrorLabel, "numberErrorLabelNotNumber");
-            }
-            case NEGATIVE -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(floatErrorLabel, "numberErrorLabelIsNegative");
+        /**
+         * tries to parse as integer
+         */
+        public static LabelErrorVariant validateNumberNotFloatOnIntegerBound(String numberString) {
+            try {
+                Integer.parseInt(numberString);
+                return NONE;
+            } catch (NumberFormatException e) {
+                return TOO_BIG;
             }
         }
-    }
 
-    /**
-     * @return null if hasn't problems with login. Sets login error label text if has and returns error variant
-     */
-    public static FloatErrorLabelVariant validateFloatFieldAndShowTextLabelWithErrorIfBad(TextField textField, Label floatErrorLabel) {
-        return validateFloatAndShowTextLabelWithErrorIfBad(textField.getText(), floatErrorLabel);
-    }
-
-    /**
-     * @return null if hasn't problems with login. Sets login error label text if has and returns error variant
-     */
-    public static FloatErrorLabelVariant validateFloatAndShowTextLabelWithErrorIfBad(String string, Label floatErrorLabel) {
-        FloatErrorLabelVariant errorVariant = validateFloat(string);
-        if (errorVariant != null) {
-            setFloatErrorLabelInCurrentLanguage(floatErrorLabel, errorVariant);
-            floatErrorLabel.setVisible(true);
-        } else {
-            floatErrorLabel.setVisible(false);
-        }
-        return errorVariant;
-    }
-
-    public static FloatErrorLabelVariant validateFloatField(TextField floatField) {
-        return validateFloat(floatField.getText());
-    }
-
-    public static FloatErrorLabelVariant validateFloat(String floatAsString) {
-        floatAsString = floatAsString.trim();
-        if (floatAsString.isEmpty()) {
-            return FloatErrorLabelVariant.BLANK;
-        }
-        try {
-            Float.parseFloat(floatAsString);
-        } catch (NumberFormatException e) {
-            return FloatErrorLabelVariant.NOT_EVEN_NUMBER;
-        }
-        return null;
-    }
-
-    /**
-     * do nothing if variant is null
-     */
-    public static void setFloatErrorLabelInCurrentLanguageIfHasVariant(Label floatErrorLabel, FloatErrorLabelVariant floatErrorLabelVariant) {
-        if (floatErrorLabelVariant != null) {
-            setFloatErrorLabelInCurrentLanguage(floatErrorLabel, floatErrorLabelVariant);
-        }
-    }
-
-    /**
-     * @throws IllegalStateException if variant is null
-     */
-    public static void setFloatErrorLabelInCurrentLanguage(Label floatErrorLabel, FloatErrorLabelVariant floatErrorLabelVariant) throws IllegalStateException {
-        if (floatErrorLabelVariant == null) {
-            throw new IllegalStateException();
-        }
-        switch (floatErrorLabelVariant) {
-            case BLANK -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(floatErrorLabel, "fieldErrorLabelIsBlank");
-            }
-            case NOT_EVEN_NUMBER -> {
-                ElementsLocaleSetter.setLabelTextInCurrentLanguage(floatErrorLabel, "numberErrorLabelNotNumber");
+        /**
+         * @throws IllegalStateException if string is not a number
+         * @return Satisfies the requirements of Validator.validateIfNone validator func
+         */
+        public static LabelErrorVariant validateNumberValueForValidateIfNone(String string, Predicate<Float> errorTester, LabelErrorVariant errorVariant) throws IllegalStateException {
+            try {
+                var numberToTest = Float.parseFloat(string);
+                if (errorTester.test(numberToTest)) {
+                    return errorVariant;
+                } else {
+                    return NONE;
+                }
+            } catch (NumberFormatException e) {
+                throw new IllegalStateException("Is not a number");
             }
         }
-    }
 
-    public static String getLogin(TextField loginField) {
-        return loginField.getText().trim();
-    }
+        /**
+         * @throws IllegalStateException if it is not a number
+         */
+        public static LabelErrorVariant validatePositiveNumber(String string) throws IllegalStateException {
+            return validateNumberValueForValidateIfNone(string, (var number) -> number <= 0, NOT_POSITIVE);
+        }
 
-    public static String getPassword(TextField passwordField) {
-        return passwordField.getText();
+        /**
+         * @throws IllegalStateException if it is not a number
+         */
+        public static LabelErrorVariant validateNotNegativeNumber(String string) throws IllegalStateException {
+            return validateNumberValueForValidateIfNone(string, (var number) -> number < 0, NEGATIVE);
+        }
+
+        /**
+         * @param trimmedString is trimmed string
+         */
+        public static LabelErrorVariant validateLongNumber(String trimmedString) {
+            var errorVariant = NONE;
+            errorVariant = validateIfNone(Numbers::validateNumber, trimmedString, errorVariant);
+            errorVariant = validateIfNone(Numbers::validateNotFloat, trimmedString, errorVariant);
+            errorVariant = validateIfNone(Numbers::validateNumberNotFloatOnLongBound, trimmedString, errorVariant);
+            return errorVariant;
+        }
+
+
+        /**
+         * @param trimmedString is trimmed string
+         * @return Satisfies the requirements of Validator.validateIfNone validator func
+         */
+        public static LabelErrorVariant validateIntegerNumber(String trimmedString) {
+            var errorVariant = NONE;
+            errorVariant = validateIfNone(Numbers::validateNumber, trimmedString, errorVariant);
+            errorVariant = validateIfNone(Numbers::validateNotFloat, trimmedString, errorVariant);
+            errorVariant = validateIfNone(Numbers::validateNumberNotFloatOnIntegerBound, trimmedString, errorVariant);
+            return errorVariant;
+        }
+
+        public static LabelErrorVariant validatePositiveInteger(String trimmedString) {
+            var errorVariant = NONE;
+            errorVariant = validateIfNone(Numbers::validateIntegerNumber, trimmedString, errorVariant) ;
+            errorVariant = validateIfNone(Numbers::validatePositiveNumber, trimmedString, errorVariant) ;
+            return errorVariant;
+        }
+
+        public static LabelErrorVariant validatePositiveLong(String trimmedString) {
+            var errorVariant = NONE;
+            errorVariant = validateIfNone(Numbers::validateLongNumber, trimmedString, errorVariant) ;
+            errorVariant = validateIfNone(Numbers::validatePositiveNumber, trimmedString, errorVariant) ;
+            return errorVariant;
+        }
+
+        public static LabelErrorVariant validateNotNegativeFloat(String string) {
+            var trimmedString = string.trim();
+            var errorVariant = NONE;
+            errorVariant = validateIfNone(Numbers::validateNumber, trimmedString, errorVariant);
+            errorVariant = validateIfNone(Numbers::validateNotNegativeNumber, trimmedString, errorVariant);
+            return errorVariant;
+        }
+
+        public static LabelErrorVariant validateFloatOrDouble(String string) {
+            var trimmedString = string.trim();
+            var errorVariant = NONE;
+            errorVariant = validateIfNone(Numbers::validateNumber, trimmedString, errorVariant);
+            return errorVariant;
+        }
+
+        /**
+         * @throws IllegalStateException if variant is NONE
+         * @throws IllegalArgumentException if variant is not BLANK or TOO_SMALL
+         */
+        public static void setErrorLabelInCurrentLanguage(Label numberErrorLabel, LabelErrorVariant numberErrorLabelVariant, UnaryOperator<String> errorLabelFormatter) throws IllegalStateException, IllegalArgumentException {
+            Validate.checkErrorLabelOnVariantContain(numberErrorLabelVariant);
+            switch (numberErrorLabelVariant) {
+                case BLANK -> LabelsTextFactory.setFieldErrorLabelIsBlankLabel(numberErrorLabel);
+                case NOT_EVEN_NUMBER -> ElementsLocaleSetter.setLabelTextInCurrentLanguage(numberErrorLabel, "numberErrorLabelNotNumber");
+                case FLOAT -> ElementsLocaleSetter.setLabelTextInCurrentLanguage(numberErrorLabel, "numberErrorLabelIsFloat");
+                case NEGATIVE -> ElementsLocaleSetter.setLabelTextInCurrentLanguage(numberErrorLabel, "numberErrorLabelIsNegative");
+                case NOT_POSITIVE -> ElementsLocaleSetter.setLabelTextInCurrentLanguage(numberErrorLabel, "numberErrorLabelNotPositive");
+                case TOO_BIG -> LabelsTextFactory.setStringErrorLabelIsTooBigLabel(numberErrorLabel, errorLabelFormatter);
+                case NOT_EQUALS_TO -> ElementsLocaleSetter.setLabelTextInCurrentLanguage(numberErrorLabel, "confirmPasswordErrorLabelNotEqualsToPassword");
+                default -> throw new IllegalArgumentException("Wrong enum value");
+            };
+        }
     }
 }

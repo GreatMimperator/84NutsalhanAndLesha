@@ -45,9 +45,33 @@ public class EnterController implements LanguageUpdatable {
     @FXML
     private Button enterButton;
 
-    private Validate.LoginErrorLabelVariant loginErrorLabelVariant = null;
+    private Validate.LabelErrorVariant loginErrorLabelVariant = null;
+    private Validate.FieldValidateProcess loginFieldValidateProcess;
 
-    private Validate.PasswordErrorLabelVariant passwordErrorLabelVariant = null;
+    private Validate.LabelErrorVariant passwordErrorLabelVariant = null;
+    private Validate.FieldValidateProcess passwordFieldValidateProcess;
+    private Validate.ValidatorAndLocaledErrorLabelSetterWithFormat passwordValidatorAndErrorLabelWithVisibilitySetter =
+            new Validate.ValidatorAndLocaledErrorLabelSetterWithFormat(
+                    Validate.Password::validate,
+                    Validate.Password::setErrorLabelInCurrentLanguage,
+                    null);
+
+    {
+        loginFieldValidateProcess =
+                new Validate.FieldValidateProcess.FieldValidateProcessBuilder()
+                        .setValidator(Validate.Login::validate)
+                        .setErrorLabelInCurrentLanguageSetter(Validate.Login::setErrorLabelInCurrentLanguage)
+                        .build();
+        loginFieldValidateProcess.setFieldValueToValidate(loginField);
+        loginFieldValidateProcess.setErrorLabel(loginErrorLabel);
+        passwordFieldValidateProcess =
+                new Validate.FieldValidateProcess.FieldValidateProcessBuilder()
+                        .setValidator(Validate.Password::validate)
+                        .setErrorLabelInCurrentLanguageSetter(Validate.Password::setErrorLabelInCurrentLanguage)
+                        .build();
+        passwordFieldValidateProcess.setFieldValueToValidate(passwordField);
+        passwordFieldValidateProcess.setErrorLabel(passwordErrorLabel);
+    }
 
     public void registerBtnActionHandler(ActionEvent actionEvent) {
         System.out.println("Register btn of enter controller clicked");
@@ -95,16 +119,14 @@ public class EnterController implements LanguageUpdatable {
     }
 
     public EnterEntry getEnterEntryFromFields() {
-        var login = Validate.getLogin(loginField);
-        var password = Validate.getPassword(passwordField);
+        var login = loginField.getText().trim();
+        var password = passwordField.getText();
         return new EnterEntry(login, password);
     }
 
     private boolean checkFieldsAndShowIfBad() {
-        loginErrorLabelVariant =
-                Validate.validateLoginAndShowTextLabelWithErrorIfBad(loginField, loginErrorLabel);
-        passwordErrorLabelVariant =
-                Validate.validatePasswordAndShowTextLabelWithErrorIfBad(passwordField, passwordErrorLabel);
+        loginErrorLabelVariant = loginFieldValidateProcess.validateAndSetErrorLabelVisibility();
+        passwordErrorLabelVariant = passwordFieldValidateProcess.validateAndSetErrorLabelVisibility();
         return loginErrorLabelVariant != null ||
                 passwordErrorLabelVariant != null;
     }
@@ -134,8 +156,8 @@ public class EnterController implements LanguageUpdatable {
         ElementsLocaleSetter.setTextFieldPromptTextInCurrentLanguage(passwordField, "enterPasswordFieldPromptText");
         ElementsLocaleSetter.setButtonLabelInCurrentLanguage(registerButton, "registerButtonLabel");
         ElementsLocaleSetter.setButtonLabelInCurrentLanguage(enterButton, "enterButtonLabel");
-        Validate.setLoginErrorLabelInCurrentLanguageIfHasVariant(loginErrorLabel, loginErrorLabelVariant);
-        Validate.setPasswordErrorLabelInCurrentLanguageIfHasVariant(passwordErrorLabel, passwordErrorLabelVariant);
+        loginFieldValidateProcess.setErrorLabelInCurrentLanguage(loginErrorLabelVariant);
+        passwordFieldValidateProcess.setErrorLabelInCurrentLanguage(passwordErrorLabelVariant);
         AppLocaleChoiceBoxSetter.updateLanguage(languageSelector);
     }
 }

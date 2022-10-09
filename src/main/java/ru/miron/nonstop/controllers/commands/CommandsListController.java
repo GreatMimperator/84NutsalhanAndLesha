@@ -86,7 +86,7 @@ public class CommandsListController implements LanguageUpdatable {
     public void updateLanguage() {
         ElementsLocaleSetter.setButtonLabelInCurrentLanguage(dragonsInfoGettingButton, "dragonsInfoGettingButtonName");
         ElementsLocaleSetter.setButtonLabelInCurrentLanguage(dragonsGettingButton, "dragonsGettingButtonName");
-        ElementsLocaleSetter.setButtonLabelInCurrentLanguage(backButton, "backButtonName");
+        ElementsLocaleSetter.setButtonLabelInCurrentLanguage(backButton, "backButtonLabel");
         ElementsLocaleSetter.setButtonLabelInCurrentLanguage(insertDragonButton, "insertDragonButtonName");
     }
 
