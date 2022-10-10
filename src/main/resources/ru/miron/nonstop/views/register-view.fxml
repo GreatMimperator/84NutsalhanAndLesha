@@ -22,9 +22,9 @@
     <PasswordField fx:id="confirmPasswordField" styleClass="defaultField" GridPane.columnIndex="0" GridPane.rowIndex="8" GridPane.columnSpan="2"/>
     <Label fx:id="confirmPasswordErrorLabel" styleClass="errorLabel" GridPane.columnIndex="0" GridPane.rowIndex="9" GridPane.columnSpan="2"/>
     <VBox GridPane.columnIndex="0" GridPane.rowIndex="10" alignment="BASELINE_LEFT">
-        <Button fx:id="enterButton" styleClass="defaultButton" onAction="#enterBtnActionHandler"/>
+        <Button fx:id="enterButton" styleClass="defaultButton" onAction="#changeSceneToEnter"/>
     </VBox>
     <VBox GridPane.columnIndex="1" GridPane.rowIndex="10" alignment="BASELINE_RIGHT">
-        <Button fx:id="registerButton" styleClass="defaultButton" onAction="#registerBtnActionHandler" defaultButton="true"/>
+        <Button fx:id="registerButton" styleClass="defaultButton" onAction="#register" defaultButton="true"/>
     </VBox>
 </GridPane>

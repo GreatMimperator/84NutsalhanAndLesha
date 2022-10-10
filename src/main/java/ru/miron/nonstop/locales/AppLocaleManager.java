@@ -43,7 +43,12 @@ public class AppLocaleManager {
     private static List<LocaleWithBundle> transformLocalesListToLocalesWithBundlesList(LinkedList<Locale> localesList) throws FileNotFoundException {
         var localesWithBundlesList = new ArrayList<LocaleWithBundle>(localesList.size());
         for (var locale : localesList) {
-            var bundle = LocaleBundleLoader.load(localesBundlePath, locale);
+            ListResourceBundle bundle = null;
+            try {
+                bundle = LocaleBundleLoader.load(localesBundlePath, locale);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             var localeWithBundle = new LocaleWithBundle(locale, bundle);
             localesWithBundlesList.add(localeWithBundle);
         }

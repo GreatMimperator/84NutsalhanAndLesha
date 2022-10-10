@@ -4,8 +4,10 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.stage.Stage;
 import javafx.scene.Scene;
+import ru.miron.nonstop.controllers.ConfirmationController;
 import ru.miron.nonstop.controllers.InfoTextBoxController;
 import ru.miron.nonstop.controllers.TableController;
+import ru.miron.nonstop.givenClasses.DragonWithKeyAndOwner;
 import ru.miron.nonstop.locales.AppLocaleManager;
 import ru.miron.nonstop.locales.LanguageUpdatable;
 import ru.miron.nonstop.locales.entities.LabelText;
@@ -19,6 +21,10 @@ import ru.miron.nonstop.logic.dao.Config;
 import java.io.File;
 import java.io.IOException;
 import java.net.ConnectException;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.function.Predicate;
 
 import static ru.miron.nonstop.locales.entities.LabelText.TextType.*;
 
@@ -28,10 +34,13 @@ public class EmoCore extends Application {
     public static UDPClient udpClient;
     public static EnterEntry enterEntry;
 
+    private static List<DragonWithKeyAndOwner> actualDragonsWithMeta;
+
     static {
         mainStage = null;
         currentController = null;
         enterEntry = null;
+        actualDragonsWithMeta = new LinkedList<>();
     }
 
     public static void main(String[] args) {
@@ -113,6 +122,22 @@ public class EmoCore extends Application {
         var controller = (InfoTextBoxController) setContainerFromLoaderAsStageScene("views/info-view.fxml", stage);
         controller.setInfoLabelText(infoLabelText);
         controller.setOnOkClickAction(stage::close);
+        stage.setTitle(windowTitle);
+        stage.show();
+        return controller;
+    }
+
+    /**
+     * @return Controller
+     * @throws IOException if has load problems
+     */
+    public static Object createConfirmAutoClosableWindow(String msgLabelName, String confirmButtonName, Runnable onConfirmAction, String windowTitle) throws IOException {
+        var stage = new Stage();
+        var controller = (ConfirmationController) setContainerFromLoaderAsStageScene("views/confirmation-view.fxml", stage);
+        controller.setMsgLabelName(msgLabelName);
+        controller.setConfirmButtonName(confirmButtonName);
+        controller.setConfirmAction(onConfirmAction);
+        controller.updateLanguage();
         stage.setTitle(windowTitle);
         stage.show();
         return controller;
@@ -201,6 +226,42 @@ public class EmoCore extends Application {
     }
 
     /**
+     * shows (tries) info about bad open if had scene gen problems.
+     * @return true if opened, false if had problems
+     */
+    public static boolean setUpdateDragonAsStageScene(Stage commandsListStage) {
+        try {
+            setContainerFromLoaderAsStageScene("views/commands/update_dragon-view.fxml", commandsListStage);
+        } catch (IOException ioe) {
+            try {
+                createInfoAutoClosableWindow("errorWithSceneLoadingMsg", "Error with scene loading");
+            } catch (IOException ioe2) {}
+            return false;
+        }
+        commandsListStage.setTitle("Update dragon");
+        commandsListStage.show();
+        return true;
+    }
+
+    /**
+     * shows (tries) info about bad open if had scene gen problems.
+     * @return true if opened, false if had problems
+     */
+    public static boolean setRemoveByKeyAsStageScene(Stage commandsListStage) {
+        try {
+            setContainerFromLoaderAsStageScene("views/commands/remove_by_key-view.fxml", commandsListStage);
+        } catch (IOException ioe) {
+            try {
+                createInfoAutoClosableWindow("errorWithSceneLoadingMsg", "Error with scene loading");
+            } catch (IOException ioe2) {}
+            return false;
+        }
+        commandsListStage.setTitle("Remove by key");
+        commandsListStage.show();
+        return true;
+    }
+
+    /**
      * loads info scene if has problems with loading
      */
     private static void setContainerFromLoaderAsMainStageScene(String resourceName) {
@@ -208,6 +269,12 @@ public class EmoCore extends Application {
             tryUnsubscribeControllerAsLanguageUpdatable(currentController);
             currentController = setContainerFromLoaderAsStageScene(resourceName, mainStage);
         } catch (IOException e) {
+            e.printStackTrace();
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ex) {
+                throw new RuntimeException(ex);
+            }
             setInfoSceneAsMain("errorWithSceneLoadingMsg");
         }
     }
@@ -278,4 +345,37 @@ public class EmoCore extends Application {
     public void stop() {
         System.out.println("stopping the application");
     }
+
+    public static List<DragonWithKeyAndOwner> getActualDragonsWithMeta() {
+        synchronized (actualDragonsWithMeta) {
+            return new LinkedList<>(actualDragonsWithMeta);
+        }
+    }
+
+    public static DragonWithKeyAndOwner getActualDragonsWithMetaById(long id) {
+        return getActualDragonsWithMetaByPredicate(dragonWithKeyAndOwner -> dragonWithKeyAndOwner.getDragon().getId() == id);
+    }
+
+    public static DragonWithKeyAndOwner getActualDragonsWithMetaByKey(String key) {
+        return getActualDragonsWithMetaByPredicate(dragonWithKeyAndOwner -> dragonWithKeyAndOwner.getKey().equals(key));
+    }
+
+    public static DragonWithKeyAndOwner getActualDragonsWithMetaByPredicate(Predicate<DragonWithKeyAndOwner> isOk) {
+        synchronized (actualDragonsWithMeta) {
+            for (var dragonWithMeta : actualDragonsWithMeta) {
+                if (isOk.test(dragonWithMeta)) {
+                    return dragonWithMeta;
+                }
+            }
+            return null;
+        }
+    }
+
+    public static void setActualDragonsWithMeta(Collection<DragonWithKeyAndOwner> dragonsWithMeta) {
+        synchronized (actualDragonsWithMeta) {
+            actualDragonsWithMeta.clear();
+            actualDragonsWithMeta.addAll(dragonsWithMeta);
+        }
+    }
+
 }

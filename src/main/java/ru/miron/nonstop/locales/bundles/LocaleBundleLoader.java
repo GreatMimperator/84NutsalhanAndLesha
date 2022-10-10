@@ -21,13 +21,13 @@ public class LocaleBundleLoader {
         var bundleList = new LinkedList<String[]>();
         while (bundleScanner.hasNextLine()) {
             var nextLine = bundleScanner.nextLine();
+            nextLine = nextLine.split("\\/\\/")[0];
             if (nextLine.isBlank()) {
                 continue;
             }
-            nextLine = nextLine.split("\\/\\/")[0];
             var splitted = nextLine.split("=");
             if (splitted.length != 2) {
-                throw new IllegalStateException();
+                throw new IllegalStateException(nextLine);
             }
             bundleList.add(splitted);
         }

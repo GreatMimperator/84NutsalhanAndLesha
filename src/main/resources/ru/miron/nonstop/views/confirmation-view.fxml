@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<!-- customize errorPane css-->
+<VBox fx:id="confirmationPane" alignment="CENTER" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="ru.miron.nonstop.controllers.ConfirmationController" stylesheets="@../styles/styles.css" spacing="20">
+    <padding>
+        <Insets bottom="20.0" left="20.0" right="20.0" top="5.0"/>
+    </padding>
+    <VBox alignment="BASELINE_RIGHT">
+        <ChoiceBox fx:id="languageSelector"/>
+    </VBox>
+    <Label fx:id="msgLabel" styleClass="defaultLabel" wrapText="true"/>
+    <HBox spacing="5">
+        <Button fx:id="backButton" onAction="#back" styleClass="defaultButton"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="confirmButton" onAction="#confirm" styleClass="defaultButton"/>
+    </HBox>
+</VBox>

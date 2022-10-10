@@ -1,5 +1,7 @@
 package ru.miron.nonstop.givenClasses;
 
+import javafx.scene.control.ChoiceBox;
+
 public enum DragonType {
     WATER,
     UNDERGROUND,
@@ -27,4 +29,9 @@ public enum DragonType {
             case FIRE -> "fire"; 
         };
     }
+
+    public static DragonType getSelected(ChoiceBox<DragonType> typeChoiceBox) {
+        return typeChoiceBox.getSelectionModel().selectedItemProperty().get();
+    }
+
 }

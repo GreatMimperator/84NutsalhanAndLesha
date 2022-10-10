@@ -19,9 +19,9 @@
     <PasswordField fx:id="passwordField" styleClass="defaultField" GridPane.columnIndex="0" GridPane.rowIndex="5" GridPane.columnSpan="2"/>
     <Label fx:id="passwordErrorLabel" styleClass="errorLabel" GridPane.columnIndex="0" GridPane.rowIndex="6" GridPane.columnSpan="2" visible="false"/>
     <VBox GridPane.columnIndex="0" GridPane.rowIndex="7" alignment="BASELINE_LEFT">
-        <Button fx:id="registerButton" styleClass="defaultButton" onAction="#registerBtnActionHandler"/>
+        <Button fx:id="registerButton" styleClass="defaultButton" onAction="#changeToRegisterScene"/>
     </VBox>
     <VBox GridPane.columnIndex="1" GridPane.rowIndex="7" alignment="BASELINE_RIGHT">
-        <Button fx:id="enterButton" styleClass="defaultButton" onAction="#enterBtnActionHandler" defaultButton="true"/>
+        <Button fx:id="enterButton" styleClass="defaultButton" onAction="#enter" defaultButton="true"/>
     </VBox>
 </GridPane>

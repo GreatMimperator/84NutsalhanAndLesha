@@ -5,16 +5,17 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import ru.miron.nonstop.EmoCore;
 import ru.miron.nonstop.locales.AppLocaleChoiceBoxSetter;
-import ru.miron.nonstop.locales.ElementsLocaleSetter;
 import ru.miron.nonstop.locales.AppLocaleManager;
+import ru.miron.nonstop.locales.ElementsLocaleSetter;
 import ru.miron.nonstop.locales.LanguageUpdatable;
-import ru.miron.nonstop.logic.commands.*;
+import ru.miron.nonstop.logic.commands.Command;
+import ru.miron.nonstop.logic.commands.CommandAnswer;
+import ru.miron.nonstop.logic.commands.CommandName;
+import ru.miron.nonstop.logic.commands.EnterEntry;
 
 import java.io.IOException;
-import java.net.ConnectException;
-import java.util.Locale;
 
-import static ru.miron.nonstop.logic.commands.CommandAnswerWithoutArgs.EnterState.ENTERED;
+import static ru.miron.nonstop.controllers.Validate.ErrorVariant.NONE;
 
 public class RegisterController implements LanguageUpdatable {
     @FXML
@@ -53,18 +54,39 @@ public class RegisterController implements LanguageUpdatable {
     @FXML
     private Button enterButton;
 
-    private Validate.LoginErrorLabelVariant loginErrorLabelVariant = null;
+    private Validate.ErrorVariant loginErrorLabelVariant;
+    private Validate.InputWithErrorLabelProcess loginFieldWithErrorLabelProcess;
 
-    private Validate.PasswordErrorLabelVariant passwordErrorLabelVariant = null;
+    private Validate.ErrorVariant passwordErrorLabelVariant;
+    private Validate.InputWithErrorLabelProcess passwordFieldWithErrorLabelProcess;
 
-    private Validate.ConfirmPasswordErrorLabelVariant confirmPasswordErrorLabelVariant = null;
+    private Validate.ErrorVariant confirmPasswordErrorLabelVariant;
+    private Validate.InputWithErrorLabelProcess confirmPasswordFieldWithErrorLabelProcess;
 
-    public void enterBtnActionHandler(ActionEvent actionEvent) {
+    @FXML
+    public void initialize() {
+        System.out.println("inited register controller");
+        initErrorVariantsInfrastructure();
+        AppLocaleChoiceBoxSetter.setContentAndOnChangeLanguageChange(languageSelector);
+        setLabels();
+    }
+
+    private void initErrorVariantsInfrastructure() {
+        loginFieldWithErrorLabelProcess = Validate.Login.initProcessor(loginField, loginErrorLabel);
+        passwordFieldWithErrorLabelProcess = Validate.Password.initProcessor(passwordField, passwordErrorLabel);
+        confirmPasswordFieldWithErrorLabelProcess = Validate.ConfirmPassword.initProcessor(passwordField, confirmPasswordField, confirmPasswordLabel);
+
+        loginErrorLabelVariant = NONE;
+        passwordErrorLabelVariant = NONE;
+        confirmPasswordErrorLabelVariant = NONE;
+    }
+
+    public void changeSceneToEnter(ActionEvent actionEvent) {
         System.out.println("Enter btn of reg controller clicked");
         EmoCore.setHelloScene();
     }
 
-    public void registerBtnActionHandler(ActionEvent actionEvent){
+    public void register(ActionEvent actionEvent){
         System.out.println("Register btn of reg controller clicked");
         if (checkFieldsAndShowIfBad()) {
             System.out.println("Register fields are bad. So, wont send any data");
@@ -103,37 +125,24 @@ public class RegisterController implements LanguageUpdatable {
     }
 
     public EnterEntry getEnterEntryFromFields() {
-        var login = Validate.getLogin(loginField);
-        var password = Validate.getPassword(passwordField);
+        var login = loginField.getText().trim();
+        var password = passwordField.getText();
         return new EnterEntry(login, password);
     }
 
     private boolean checkFieldsAndShowIfBad() {
-        loginErrorLabelVariant =
-                Validate.validateLoginAndShowTextLabelWithErrorIfBad(loginField, loginErrorLabel);
-        passwordErrorLabelVariant =
-                Validate.validatePasswordAndShowTextLabelWithErrorIfBad(passwordField, passwordErrorLabel);
-        confirmPasswordErrorLabelVariant =
-                Validate.validateConfirmPasswordAndShowTextLabelWithErrorIfBad(
-                        confirmPasswordField,
-                        passwordField,
-                        confirmPasswordErrorLabel);
-        return loginErrorLabelVariant != null ||
-                passwordErrorLabelVariant != null ||
-                confirmPasswordErrorLabelVariant != null;
+        loginErrorLabelVariant = loginFieldWithErrorLabelProcess.updateErrorLabel();
+        passwordErrorLabelVariant = passwordFieldWithErrorLabelProcess.updateErrorLabel();
+        confirmPasswordErrorLabelVariant = confirmPasswordFieldWithErrorLabelProcess.updateErrorLabel();
+        return loginErrorLabelVariant != NONE ||
+                passwordErrorLabelVariant != NONE ||
+                confirmPasswordErrorLabelVariant != NONE;
     }
 
     private void hideErrorLabels() {
         loginErrorLabel.setVisible(false);
         passwordErrorLabel.setVisible(false);
         confirmPasswordErrorLabel.setVisible(false);
-    }
-
-    @FXML
-    public void initialize() {
-        System.out.println("inited register controller");
-        AppLocaleChoiceBoxSetter.setContentAndOnChangeLanguageChange(languageSelector);
-        setLabels();
     }
 
     public void setLabels() {
@@ -143,17 +152,17 @@ public class RegisterController implements LanguageUpdatable {
     @Override
     public void updateLanguage() {
         System.out.println("Can be updated to " + AppLocaleManager.getCurrentLocale().getDisplayName());
-        ElementsLocaleSetter.setLabelTextInCurrentLanguage(enterLoginLabel, "enterLoginLabel");
-        ElementsLocaleSetter.setTextFieldPromptTextInCurrentLanguage(loginField, "enterLoginFieldPromptText");
-        ElementsLocaleSetter.setLabelTextInCurrentLanguage(enterPasswordLabel, "enterPasswordLabel");
-        ElementsLocaleSetter.setTextFieldPromptTextInCurrentLanguage(passwordField, "enterPasswordFieldPromptText");
-        ElementsLocaleSetter.setLabelTextInCurrentLanguage(confirmPasswordLabel, "confirmPasswordLabel");
-        ElementsLocaleSetter.setTextFieldPromptTextInCurrentLanguage(confirmPasswordField, "confirmPasswordFieldPromptText");
-        ElementsLocaleSetter.setButtonLabelInCurrentLanguage(registerButton, "registerButtonLabel");
-        ElementsLocaleSetter.setButtonLabelInCurrentLanguage(enterButton, "enterButtonLabel");
-        Validate.setLoginErrorLabelInCurrentLanguageIfHasVariant(loginErrorLabel, loginErrorLabelVariant);
-        Validate.setPasswordErrorLabelInCurrentLanguageIfHasVariant(passwordErrorLabel, passwordErrorLabelVariant);
-        Validate.setConfirmPasswordErrorLabelInCurrentLanguageIfHasVariant(confirmPasswordErrorLabel, confirmPasswordErrorLabelVariant);
+        ElementsLocaleSetter.setLocalizedText(enterLoginLabel, "loginLabel");
+        ElementsLocaleSetter.setLocalizedPromptText(loginField, "loginFieldPromptText");
+        ElementsLocaleSetter.setLocalizedText(enterPasswordLabel, "passwordLabel");
+        ElementsLocaleSetter.setLocalizedPromptText(passwordField, "passwordFieldPromptText");
+        ElementsLocaleSetter.setLocalizedText(confirmPasswordLabel, "confirmPasswordLabel");
+        ElementsLocaleSetter.setLocalizedPromptText(confirmPasswordField, "confirmPasswordFieldPromptText");
+        ElementsLocaleSetter.setLocalizedText(registerButton, "registerButtonLabel");
+        ElementsLocaleSetter.setLocalizedText(enterButton, "enterButtonLabel");
+        loginFieldWithErrorLabelProcess.setLocalizedErrorLabelIfHas(loginErrorLabelVariant);
+        passwordFieldWithErrorLabelProcess.setLocalizedErrorLabelIfHas(passwordErrorLabelVariant);
+        confirmPasswordFieldWithErrorLabelProcess.setLocalizedErrorLabelIfHas(confirmPasswordErrorLabelVariant);
         AppLocaleChoiceBoxSetter.updateLanguage(languageSelector);
     }
 }

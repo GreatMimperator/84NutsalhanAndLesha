@@ -19,15 +19,15 @@ public class InfoTextBoxController implements LanguageUpdatable {
     private LabelText okButtonLabelText;
     private Runnable toDoOnOkClick;
 
-    public InfoTextBoxController() {
-        okButtonLabelText = new LabelText("infoTextBoxDefaultOkButtonText", LabelText.TextType.LABEL_NAME);
-    }
-
     @FXML
     public void initialize() {
-        System.out.println("inited error controller");
+        System.out.println("inited info controller");
         AppLocaleChoiceBoxSetter.setContentAndOnChangeLanguageChange(languageSelector);
         setLabels();
+    }
+
+    public InfoTextBoxController() {
+        okButtonLabelText = new LabelText("infoTextBoxDefaultOkButtonText", LabelText.TextType.LABEL_NAME);
     }
 
     public void setOnOkClickAction(Runnable toDoOnOkClick) {
@@ -48,9 +48,9 @@ public class InfoTextBoxController implements LanguageUpdatable {
     @Override
     public void updateLanguage() {
         if (infoLabelText != null) {
-            ElementsLocaleSetter.setLabelTextInCurrentLanguage(infoLabel, infoLabelText);
+            ElementsLocaleSetter.setText(infoLabel, infoLabelText);
         }
-        ElementsLocaleSetter.setButtonLabelInCurrentLanguage(okButton, okButtonLabelText);
+        ElementsLocaleSetter.setText(okButton, okButtonLabelText);
         AppLocaleChoiceBoxSetter.updateLanguage(languageSelector);
     }
 

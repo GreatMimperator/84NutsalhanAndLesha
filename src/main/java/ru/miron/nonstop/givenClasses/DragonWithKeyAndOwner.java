@@ -18,7 +18,8 @@ public class DragonWithKeyAndOwner implements JSONConvertable {
      */
     private Dragon dragon;
     /**
-     * Can be {@code null} if process doesn't need it 
+     * Can be {@code null} if process doesn't need it
+     * Cannot be blank
      */
     private String key;
     /**
@@ -77,6 +78,9 @@ public class DragonWithKeyAndOwner implements JSONConvertable {
      * @param key can be {@code null} if process doesn't need it
      */
     public void setKey(String key) {
+        if (key.isBlank()) {
+            throw new IllegalArgumentException();
+        }
         this.key = key;
     }
 
@@ -133,12 +137,16 @@ public class DragonWithKeyAndOwner implements JSONConvertable {
         return key != null; 
     }
 
-    public String ownerProperty() {
-        return ownerLogin;
+    public StringProperty ownerProperty() {
+        return new SimpleStringProperty(ownerLogin);
     }
 
     public LongProperty idProperty() {
         return new SimpleLongProperty(dragon.getId());
+    }
+
+    public StringProperty keyProperty() {
+        return new SimpleStringProperty(getKey());
     }
 
     public StringProperty nameProperty() {

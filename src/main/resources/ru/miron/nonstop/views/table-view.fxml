@@ -15,14 +15,14 @@
         </HBox>
         <Region HBox.hgrow="ALWAYS"/>
         <HBox alignment="CENTER" >
-            <Button fx:id="commandsListButton" onAction="#commandsListBtnActionListener" styleClass="defaultButton, superBigButton"/>
+            <Button fx:id="commandsListButton" onAction="#openCommandsListWindow" styleClass="defaultButton, superBigButton"/>
         </HBox>
         <Region HBox.hgrow="ALWAYS" />
         <VBox alignment="CENTER_RIGHT">
             <ChoiceBox fx:id="languageSelector"/>
             <Label fx:id="authorizedAsLabel" styleClass="defaultLabel"/>
             <Label fx:id="authorizedLoginLabel" styleClass="defaultLabel"/>
-            <Button fx:id="exitButton" onAction="#exitBtnActionListener" styleClass="defaultButton, bigButton" />
+            <Button fx:id="exitButton" onAction="#setEnterScene" styleClass="defaultButton, bigButton" />
         </VBox>
     </HBox>
 </AnchorPane>

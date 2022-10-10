@@ -9,8 +9,12 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 
+import ru.miron.nonstop.EmoCore;
 import ru.miron.nonstop.logic.commands.Command;
 import ru.miron.nonstop.logic.commands.CommandAnswer;
+import ru.miron.nonstop.logic.commands.CommandName;
+import ru.miron.nonstop.logic.commands.args.GetDragonsWithThisDescriptionCommandArgs;
+import ru.miron.nonstop.logic.commands.specificAnswers.DragonsGettingCommandSpecificAnswer;
 import ru.miron.nonstop.logic.dao.Config;
 import ru.miron.nonstop.logic.util.json.JSON;
 
@@ -87,9 +91,21 @@ public class UDPClient {
         System.out.println(answer);
         try {
             var root = JSON.parse(answer).asMap().getValues();
-            return CommandAnswer.initFromTheRoot(commandToSend.getCommandName(), root);
+            var commandAnswer = CommandAnswer.initFromTheRoot(commandToSend.getCommandName(), root);
+            updateDragonsWithMetaListIfGetQuery(commandToSend.getCommandName(), commandAnswer);
+            return commandAnswer;
         } catch (IllegalStateException | ClassCastException e) {
             throw new IllegalArgumentException(); 
+        }
+    }
+
+    public void updateDragonsWithMetaListIfGetQuery(CommandName commandName, CommandAnswer commandAnswer) {
+        var isError = commandAnswer.getCommandAnswerWithoutArgs().getIsError();
+        var isGetDragonsAnswer = commandName == CommandName.GET_DRAGONS;
+        if (!isError && isGetDragonsAnswer) {
+            var answerObj = (DragonsGettingCommandSpecificAnswer) commandAnswer.getCommandSpecificAnswerObj();
+            var gotDragons = answerObj.getDragons();
+            EmoCore.setActualDragonsWithMeta(gotDragons);
         }
     }
 

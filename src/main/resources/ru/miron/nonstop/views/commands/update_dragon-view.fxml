@@ -5,12 +5,16 @@
 <?import javafx.scene.layout.*?>
 
 
-<HBox fx:id="insertDragonPane" alignment="CENTER" xmlns:fx="http://javafx.com/fxml"
-      fx:controller="ru.miron.nonstop.controllers.commands.InsertDragonController" stylesheets="@../../styles/styles.css" spacing="10">
+<HBox fx:id="updateDragonPane" alignment="CENTER" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="ru.miron.nonstop.controllers.commands.UpdateDragonController" stylesheets="@../../styles/styles.css" spacing="10">
     <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
     </padding>
     <VBox spacing="5">
+        <Label fx:id="idLabel" styleClass="defaultLabel"/>
+        <TextField fx:id="idField" styleClass="defaultField"/>
+        <Label fx:id="idErrorLabel" visible="false" styleClass="errorLabel"/>
+        <Button fx:id="fillWithPreviousDataButton" onAction="#fillWithPreviousData" styleClass="defaultButton"/>
         <Label fx:id="nameLabel" styleClass="defaultLabel"/>
         <TextField fx:id="nameField" styleClass="defaultField"/>
         <Label fx:id="nameErrorLabel" visible="false" styleClass="errorLabel"/>
@@ -49,7 +53,7 @@
         <HBox spacing="5">
             <Button fx:id="clearInputsButton" onAction="#clearInputs" styleClass="defaultButton"/>
             <Region HBox.hgrow="ALWAYS"/>
-            <Button fx:id="insertDragonButton" onAction="#tryInsert" styleClass="defaultButton"/>
+            <Button fx:id="updateDragonButton" onAction="#tryUpdateDragon" styleClass="defaultButton"/>
         </HBox>
         <Region minHeight="20"/>
         <HBox>

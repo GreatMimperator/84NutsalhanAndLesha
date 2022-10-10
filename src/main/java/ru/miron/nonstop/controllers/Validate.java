@@ -1,24 +1,27 @@
 package ru.miron.nonstop.controllers;
 
 import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
-import javafx.scene.text.Text;
+import javafx.scene.control.TextInputControl;
 import ru.miron.nonstop.locales.AppLocaleManager;
 import ru.miron.nonstop.locales.ElementsLocaleSetter;
 import ru.miron.nonstop.locales.entities.LabelText;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.MissingFormatArgumentException;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
-import static ru.miron.nonstop.controllers.Validate.LabelErrorVariant.*;
-import static ru.miron.nonstop.locales.entities.LabelText.TextType.LABEL_NAME;
-import static ru.miron.nonstop.locales.entities.LabelText.TextType.PLAIN_TEXT;
+
+import static ru.miron.nonstop.controllers.Validate.ErrorVariant.*;
+import static ru.miron.nonstop.locales.entities.LabelText.TextType.*;
 
 public class Validate {
-    public enum LabelErrorVariant { // todo: do
+    public enum ErrorVariant { // todo: do
         NONE,
         BLANK,
+        BLANK_CHARS_AROUND,
         TOO_BIG,
         TOO_SMALL,
         NOT_EQUALS_TO,
@@ -26,198 +29,185 @@ public class Validate {
         NOT_POSITIVE,
         NEGATIVE,
         FLOAT;
+
+        /**
+         * @throws IllegalStateException if labelErrorVariant is NONE
+         */
+        public void checkOnError() throws IllegalStateException {
+            if (this == NONE) {
+                throw new IllegalStateException("Error label variant shouldn't be NONE");
+            }
+        }
     }
 
     @FunctionalInterface
-    public interface ErrorLabelInCurrentLanguageSetter {
+    public interface LocalizedErrorLabelUpdater {
         /**
-         * @param errorLabelFormatter can be null if nothing to format
-         * @throws IllegalStateException if errorVariantToSet is NONE
-         * @throws IllegalArgumentException if errorVariantToSet has illegal variant
+         * @param formatter can be null if nothing to format
+         * @throws IllegalStateException if errorVariantToSet is NONE or has illegal variant
+         * @throws IllegalArgumentException if formatter is null when should be
+         * @throws MissingFormatArgumentException if wrong formatter
          */
-        void setErrorLabelInCurrentLanguage(Label errorLabel, LabelErrorVariant errorVariantToSet, UnaryOperator<String> errorLabelFormatter) throws IllegalStateException, IllegalArgumentException;
+        void update(Label errorLabel, ErrorVariant variantToSet, UnaryOperator<String> formatter) throws IllegalStateException, IllegalArgumentException, MissingFormatArgumentException;
     }
 
-    public static void setLabelVisibility(Label errorLabel, LabelErrorVariant labelErrorVariant) {
-        if (labelErrorVariant != NONE) {
+    public static void setVisibility(Label errorLabel, ErrorVariant errorVariant) {
+        if (errorVariant != NONE) {
             errorLabel.setVisible(true);
         } else {
             errorLabel.setVisible(false);
         }
     }
 
-    /**
-     * @throws IllegalStateException if labelErrorVariant is NONE
-     */
-    public static void checkErrorLabelOnVariantContain(LabelErrorVariant labelErrorVariant) throws IllegalStateException {
-        if (labelErrorVariant == NONE) {
-            throw new IllegalStateException("error label variant shouldn't be NONE");
-        }
-    }
-
-    public static class ValidatorAndLocaledErrorLabelSetterWithFormat {
-        private Function<String, LabelErrorVariant> validator;
-        private ErrorLabelInCurrentLanguageSetter errorLabelInCurrentLanguageSetter;
-        private UnaryOperator<String> errorLabelFormatter;
-
-        public ValidatorAndLocaledErrorLabelSetterWithFormat(
-                Function<String, LabelErrorVariant> validator,
-                ErrorLabelInCurrentLanguageSetter errorLabelInCurrentLanguageSetter,
-                UnaryOperator<String> errorLabelFormatter) {
-            this.validator = validator;
-            this.errorLabelInCurrentLanguageSetter = errorLabelInCurrentLanguageSetter;
-            this.errorLabelFormatter = errorLabelFormatter;
-        }
-
-        /**
-         * @param errorLabelFormatter can be null if nothing to format
-         * @throws IllegalArgumentException if validator returned illegal value
-         * @throws IllegalStateException if labelErrorVariant is NONE
-         */
-        public LabelErrorVariant validateAndSetErrorLabelVisibility(TextField fieldValueToValidate, Label errorLabel) {
-            return Validate.validateAndSetErrorLabelVisibility(fieldValueToValidate, errorLabel, validator, errorLabelInCurrentLanguageSetter, errorLabelFormatter);
-        }
-
-        public LabelErrorVariant validateAndSetErrorLabelVisibility(String valueToValidate, Label errorLabel) {
-            return Validate.validateAndSetErrorLabelVisibility(valueToValidate, errorLabel, validator, errorLabelInCurrentLanguageSetter, errorLabelFormatter);
-        }
-    }
-
-    public static class FieldValidateProcess {
-        private TextField fieldValueToValidate = null;
+    public static class InputWithErrorLabelProcess {
+        private TextInputControl inputValueToValidate = null;
         private Label errorLabel = null;
-        private Function<String, LabelErrorVariant> validator;
-        private ErrorLabelInCurrentLanguageSetter errorLabelInCurrentLanguageSetter;
-        private UnaryOperator<String> errorLabelFormatter = null;
+        private Function<String, ErrorVariant> validator;
+        private LocalizedErrorLabelUpdater localizedErrorLabelUpdater;
+        private Map<ErrorVariant, UnaryOperator<String>> errorLabelFormatters;
 
         /**
-         * @throws IllegalArgumentException if any (except of errorLabelFormatter)
+         * @throws IllegalArgumentException if any (except of errorLabelFormatters)
          */
-        private FieldValidateProcess(
-                Function<String, LabelErrorVariant> validator,
-                ErrorLabelInCurrentLanguageSetter errorLabelInCurrentLanguageSetter,
-                UnaryOperator<String> errorLabelFormatter) throws IllegalArgumentException {
-           if (validator == null || errorLabelInCurrentLanguageSetter == null) {
+        private InputWithErrorLabelProcess(
+                Function<String, ErrorVariant> validator,
+                LocalizedErrorLabelUpdater localizedErrorLabelUpdater,
+                Map<ErrorVariant, UnaryOperator<String>> errorLabelFormatters) throws IllegalArgumentException {
+           if (validator == null || localizedErrorLabelUpdater == null) {
                throw new IllegalArgumentException();
            }
            this.validator = validator;
-           this.errorLabelInCurrentLanguageSetter = errorLabelInCurrentLanguageSetter;
-           this.errorLabelFormatter = errorLabelFormatter;
+           this.localizedErrorLabelUpdater = localizedErrorLabelUpdater;
+           this.errorLabelFormatters = errorLabelFormatters;
         }
 
         /**
-         * @throws IllegalArgumentException if validator returned illegal value or required to set fields (fieldValueToValidate, errorLabel) is null
+         * @throws IllegalArgumentException if validator returned illegal value or required to set inputs (fieldValueToValidate, errorLabel) is null
          * @throws IllegalStateException if labelErrorVariant is NONE
          */
-        public LabelErrorVariant validateAndSetErrorLabelVisibility() throws IllegalArgumentException, IllegalStateException {
-            if (fieldValueToValidate == null || errorLabel == null) {
-                throw new IllegalArgumentException("Required fields is null");
+        public ErrorVariant updateErrorLabel() throws IllegalArgumentException, IllegalStateException {
+            if (inputValueToValidate == null || errorLabel == null) {
+                throw new IllegalArgumentException("Required inputs is null");
             }
-            return Validate.validateAndSetErrorLabelVisibility(
-                    fieldValueToValidate,
+            return Validate.updateErrorLabel(
+                    inputValueToValidate,
                     errorLabel,
                     validator,
-                    errorLabelInCurrentLanguageSetter,
-                    errorLabelFormatter);
+                    localizedErrorLabelUpdater,
+                    errorLabelFormatters);
         }
 
-        public void setErrorLabelInCurrentLanguage(LabelErrorVariant labelErrorVariant) {
-            errorLabelInCurrentLanguageSetter.setErrorLabelInCurrentLanguage(errorLabel, labelErrorVariant, errorLabelFormatter);
+        public void setLocalizedErrorLabelIfHas(ErrorVariant errorVariant) {
+            if (errorVariant != NONE) {
+                if (errorLabelFormatters.containsKey(errorVariant)) {
+                    localizedErrorLabelUpdater.update(errorLabel, errorVariant, errorLabelFormatters.get(errorVariant));
+                } else {
+                    localizedErrorLabelUpdater.update(errorLabel, errorVariant, null);
+                }
+            }
         }
 
-        public void setFieldValueToValidate(TextField fieldValueToValidate) {
-            this.fieldValueToValidate = fieldValueToValidate;
+        public void setInputValueToValidate(TextInputControl inputValueToValidate) {
+            this.inputValueToValidate = inputValueToValidate;
         }
 
         public void setErrorLabel(Label errorLabel) {
             this.errorLabel = errorLabel;
         }
 
-        public static class FieldValidateProcessBuilder {
-            private Function<String, LabelErrorVariant> validator;
-            private ErrorLabelInCurrentLanguageSetter errorLabelInCurrentLanguageSetter;
-            private UnaryOperator<String> errorLabelFormatter;
+        public void updateFormatters(Map<ErrorVariant, UnaryOperator<String>> errorLabelFormatters) {
+            this.errorLabelFormatters = errorLabelFormatters;
+        }
 
-            public FieldValidateProcessBuilder() {
+        public static class Builder {
+            private Function<String, ErrorVariant> validator;
+            private LocalizedErrorLabelUpdater localizedErrorLabelUpdater;
+            private Map<ErrorVariant, UnaryOperator<String>> errorLabelFormatters;
+
+            public Builder() {
                 validator = null;
-                errorLabelInCurrentLanguageSetter = null;
-                errorLabelFormatter = null;
+                localizedErrorLabelUpdater = null;
+                errorLabelFormatters = null;
             }
 
             /**
-             * @throws IllegalStateException if either of validator or errorLabelInCurrentLanguageSetter fields is null
+             * @throws IllegalStateException if either of validator or errorLabelInCurrentLanguageSetter inputs is null
              */
-            public FieldValidateProcess build() throws IllegalStateException {
-                if (validator == null || errorLabelInCurrentLanguageSetter == null) {
-                    throw new IllegalStateException("Any of required fields is null");
+            public InputWithErrorLabelProcess build() throws IllegalStateException {
+                if (validator == null || localizedErrorLabelUpdater == null) {
+                    throw new IllegalStateException("Any of required inputs is null");
                 }
-                return new FieldValidateProcess(validator, errorLabelInCurrentLanguageSetter, errorLabelFormatter);
+                return new InputWithErrorLabelProcess(validator, localizedErrorLabelUpdater, errorLabelFormatters);
             }
 
-            public FieldValidateProcessBuilder setValidator(Function<String, LabelErrorVariant> validator) {
+            public Builder setValidator(Function<String, ErrorVariant> validator) {
                 this.validator = validator;
                 return this;
             }
 
-            public FieldValidateProcessBuilder setErrorLabelInCurrentLanguageSetter(ErrorLabelInCurrentLanguageSetter errorLabelInCurrentLanguageSetter) {
-                this.errorLabelInCurrentLanguageSetter = errorLabelInCurrentLanguageSetter;
+            public Builder setErrorLabelInCurrentLanguageSetter(LocalizedErrorLabelUpdater localizedErrorLabelUpdater) {
+                this.localizedErrorLabelUpdater = localizedErrorLabelUpdater;
                 return this;
             }
 
-            public FieldValidateProcessBuilder setErrorLabelFormatter(UnaryOperator<String> errorLabelFormatter) {
-                this.errorLabelFormatter = errorLabelFormatter;
+            public Builder setErrorLabelFormatters(Map<ErrorVariant, UnaryOperator<String>> errorLabelFormatters) {
+                this.errorLabelFormatters = errorLabelFormatters;
                 return this;
             }
         }
-
     }
 
     /**
-     * @param errorLabelFormatter can be null if nothing to format
+     * @param errorLabelFormatters can be null if nothing to format
      * @throws IllegalArgumentException if validator returned illegal value
      * @throws IllegalStateException if labelErrorVariant is NONE
      */
-    public static LabelErrorVariant validateAndSetErrorLabelVisibility(
-            TextField fieldValueToValidate,
+    public static ErrorVariant updateErrorLabel(
+            TextInputControl inputValueToValidate,
             Label errorLabel,
-            Function<String, LabelErrorVariant> validator,
-            ErrorLabelInCurrentLanguageSetter errorLabelInCurrentLanguageSetter,
-            UnaryOperator<String> errorLabelFormatter) throws IllegalArgumentException, IllegalStateException {
-        return validateAndSetErrorLabelVisibility(
-                fieldValueToValidate.getText(),
+            Function<String, ErrorVariant> validator,
+            LocalizedErrorLabelUpdater localizedErrorLabelUpdater,
+            Map<ErrorVariant, UnaryOperator<String>> errorLabelFormatters) throws IllegalArgumentException, IllegalStateException {
+        return updateErrorLabel(
+                inputValueToValidate.getText(),
                 errorLabel,
                 validator,
-                errorLabelInCurrentLanguageSetter,
-                errorLabelFormatter);
+                localizedErrorLabelUpdater,
+                errorLabelFormatters);
     }
 
     /**
-     * @param errorLabelFormatter can be null if nothing to format
+     * @param errorLabelFormatters can be null if nothing to format
      * @throws IllegalArgumentException if validator returned illegal value
      */
-    public static LabelErrorVariant validateAndSetErrorLabelVisibility(
+    public static ErrorVariant updateErrorLabel(
             String valueToValidate,
             Label errorLabel,
-            Function<String, LabelErrorVariant> validator,
-            ErrorLabelInCurrentLanguageSetter errorLabelInCurrentLanguageSetter,
-            UnaryOperator<String> errorLabelFormatter) {
-        LabelErrorVariant errorVariant = validator.apply(valueToValidate);
-        setErrorLabelInCurrentLanguageIfHasVariant(errorLabel, errorVariant, errorLabelInCurrentLanguageSetter, errorLabelFormatter);
-        setLabelVisibility(errorLabel, errorVariant);
+            Function<String, ErrorVariant> validator,
+            LocalizedErrorLabelUpdater localizedErrorLabelUpdater,
+            Map<ErrorVariant, UnaryOperator<String>> errorLabelFormatters) {
+        ErrorVariant errorVariant = validator.apply(valueToValidate);
+        updateErrorLabelIfHasVariant(errorLabel, errorVariant, localizedErrorLabelUpdater, errorLabelFormatters);
+        setVisibility(errorLabel, errorVariant);
         return errorVariant;
     }
 
     /**
-     * @param errorLabelFormatter can be null if nothing to format
-     * @throws IllegalArgumentException if variant has illegal value
+     * @param errorLabelFormatters can be null if nothing to format
+     * @throws IllegalStateException if variant has illegal value
+     * @throws IllegalArgumentException if needed formatter
      */
-    public static void setErrorLabelInCurrentLanguageIfHasVariant(
-            Label loginErrorLabel,
-            LabelErrorVariant loginErrorLabelVariant,
-            ErrorLabelInCurrentLanguageSetter errorLabelInCurrentLanguageSetter,
-            UnaryOperator<String> errorLabelFormatter) throws IllegalArgumentException {
-        if (loginErrorLabelVariant != NONE) {
-            errorLabelInCurrentLanguageSetter.setErrorLabelInCurrentLanguage(loginErrorLabel, loginErrorLabelVariant, errorLabelFormatter);
+    public static void updateErrorLabelIfHasVariant(
+            Label errorLabel,
+            ErrorVariant errorVariant,
+            LocalizedErrorLabelUpdater localizedErrorLabelUpdater,
+            Map<ErrorVariant, UnaryOperator<String>> errorLabelFormatters) throws IllegalArgumentException {
+        if (errorVariant != NONE) {
+            UnaryOperator<String> errorLabelFormatter = null;
+            if (errorLabelFormatters != null) {
+                errorLabelFormatter = errorLabelFormatters.get(errorVariant);
+            }
+            localizedErrorLabelUpdater.update(errorLabel, errorVariant, errorLabelFormatter);
         }
     }
 
@@ -234,31 +224,49 @@ public class Validate {
     }
 
     public static class LabelsTextFactory {
-        public static void setFieldErrorLabelIsBlankLabel(Label errorLabel) {
-            ElementsLocaleSetter.setLabelTextInCurrentLanguage(errorLabel, getFieldErrorLabelIsBlank());
+        public static void setInputErrorLabelIsBlankLabel(Label errorLabel) {
+            ElementsLocaleSetter.setText(errorLabel, getInputErrorLabelIsBlank());
         }
 
-        public static LabelText getFieldErrorLabelIsBlank() {
-            return new LabelText("fieldErrorLabelIsBlank", LABEL_NAME);
+        public static LabelText getInputErrorLabelIsBlank() {
+            return new LabelText("inputErrorLabelIsBlank", LABEL_NAME);
         }
 
 
-        public static void setStringErrorLabelIsTooBigLabel(Label errorLabel, UnaryOperator<String> errorLabelFormatter) {
-            ElementsLocaleSetter.setLabelTextInCurrentLanguage(errorLabel, getStringErrorLabelTooBig(errorLabelFormatter));
+        /**
+         * @throws IllegalArgumentException if formatter is null
+         */
+        public static void setStringErrorLabelIsTooBigLabel(Label errorLabel, UnaryOperator<String> errorLabelFormatter) throws IllegalArgumentException {
+            ElementsLocaleSetter.setText(errorLabel, getStringErrorLabelTooBig(errorLabelFormatter));
         }
 
-        public static LabelText getStringErrorLabelTooBig(UnaryOperator<String> errorLabelFormatter) {
+        /**
+         * @throws IllegalArgumentException if formatter is null
+         */
+        public static LabelText getStringErrorLabelTooBig(UnaryOperator<String> errorLabelFormatter) throws IllegalArgumentException {
             String notFormattedString = AppLocaleManager.getTextByLabel("stringErrorLabelTooBig");
+            if (errorLabelFormatter == null) {
+                throw new IllegalArgumentException("Formatter have to be not null");
+            }
             String formattedString = errorLabelFormatter.apply(notFormattedString);
             return new LabelText(formattedString, PLAIN_TEXT);
         }
 
-        public static void setStringErrorLabelIsTooSmallLabel(Label errorLabel, UnaryOperator<String> errorLabelFormatter) {
-            ElementsLocaleSetter.setLabelTextInCurrentLanguage(errorLabel, getStringErrorLabelTooSmall(errorLabelFormatter));
+        /**
+         * @throws IllegalArgumentException if formatter is null
+         */
+        public static void setStringErrorLabelIsTooSmallLabel(Label errorLabel, UnaryOperator<String> errorLabelFormatter) throws IllegalArgumentException {
+            ElementsLocaleSetter.setText(errorLabel, getStringErrorLabelTooSmall(errorLabelFormatter));
         }
 
-        public static LabelText getStringErrorLabelTooSmall(UnaryOperator<String> errorLabelFormatter) {
+        /**
+         * @throws IllegalArgumentException if formatter is null
+         */
+        public static LabelText getStringErrorLabelTooSmall(UnaryOperator<String> errorLabelFormatter) throws IllegalArgumentException {
             String notFormattedString = AppLocaleManager.getTextByLabel("stringErrorLabelTooSmall");
+            if (errorLabelFormatter == null) {
+                throw new IllegalArgumentException("Formatter have to be not null");
+            }
             String formattedString = errorLabelFormatter.apply(notFormattedString);
             return new LabelText(formattedString, PLAIN_TEXT);
         }
@@ -269,7 +277,7 @@ public class Validate {
          * @return BLANK (only empty symbols or nothing), TOO_BIG (len without corner empty symbols is over than 80) or TOO_SMALL (lower than 5),
          * NONE if hasn't
          */
-        public static LabelErrorVariant validate(String login) {
+        public static ErrorVariant validate(String login) {
             login = login.trim();
             if (login.isEmpty()) {
                 return BLANK;
@@ -284,17 +292,35 @@ public class Validate {
         }
 
         /**
-         * @throws IllegalStateException if variant is NONE
-         * @throws IllegalArgumentException if variant is not BLANK, TOO_BIG or TOO_SMALL
+         * @throws IllegalStateException if variant is NONE or not BLANK, TOO_BIG or TOO_SMALL
+         * @throws IllegalArgumentException if format is null, when needed
          */
-        public static void setErrorLabelInCurrentLanguage(Label loginErrorLabel, LabelErrorVariant loginErrorVariantToSet, UnaryOperator<String> errorLabelFormatter) throws IllegalStateException, IllegalArgumentException {
-            Validate.checkErrorLabelOnVariantContain(loginErrorVariantToSet);
+        public static void updateLocalizedErrorLabel(Label loginErrorLabel, ErrorVariant loginErrorVariantToSet, UnaryOperator<String> errorLabelFormatter) throws IllegalStateException, IllegalArgumentException {
+            loginErrorVariantToSet.checkOnError();
             switch (loginErrorVariantToSet) {
-                case BLANK -> LabelsTextFactory.setFieldErrorLabelIsBlankLabel(loginErrorLabel);
+                case BLANK -> LabelsTextFactory.setInputErrorLabelIsBlankLabel(loginErrorLabel);
                 case TOO_BIG -> LabelsTextFactory.setStringErrorLabelIsTooBigLabel(loginErrorLabel, errorLabelFormatter);
                 case TOO_SMALL -> LabelsTextFactory.setStringErrorLabelIsTooSmallLabel(loginErrorLabel, errorLabelFormatter);
-                default -> throw new IllegalArgumentException("Wrong enum value");
+                default -> throw new IllegalStateException("Wrong enum value");
             }
+        }
+
+        public static InputWithErrorLabelProcess initProcessor(TextInputControl loginField, Label loginErrorLabel) {
+            var process = initProcessor();
+            process.setInputValueToValidate(loginField);
+            process.setErrorLabel(loginErrorLabel);
+            return process;
+        }
+
+        public static InputWithErrorLabelProcess initProcessor() {
+            var formatters = new HashMap<ErrorVariant, UnaryOperator<String>>();
+            formatters.put(TOO_BIG, (var string) -> string.formatted(80) );
+            formatters.put(TOO_SMALL, (var string) -> string.formatted(5) );
+            return new Validate.InputWithErrorLabelProcess.Builder()
+                    .setValidator(Login::validate)
+                    .setErrorLabelInCurrentLanguageSetter(Login::updateLocalizedErrorLabel)
+                    .setErrorLabelFormatters(formatters)
+                    .build();
         }
     }
 
@@ -304,8 +330,12 @@ public class Validate {
          * @return BLANK (only empty symbols or nothing) or TOO_SMALL (len without corner empty symbols is lower than 5),
          * NONE if hasn't
          */
-        public static LabelErrorVariant validate(String password) {
+        public static ErrorVariant validate(String password) {
+            int passwordLengthBeforeTrim = password.length();
             password = password.trim();
+            if (password.length() != passwordLengthBeforeTrim) {
+                return BLANK_CHARS_AROUND;
+            }
             if (password.isEmpty()) {
                 return BLANK;
             }
@@ -316,16 +346,34 @@ public class Validate {
         }
 
         /**
-         * @throws IllegalStateException if variant is NONE
-         * @throws IllegalArgumentException if variant is not BLANK or TOO_SMALL
+         * @throws IllegalStateException if variant is NONE or not BLANK or TOO_SMALL
+         * @throws IllegalArgumentException if format is null, when needed
          */
-        public static void setErrorLabelInCurrentLanguage(Label passwordErrorLabel, LabelErrorVariant passwordErrorLabelVariant, UnaryOperator<String> errorLabelFormatter) throws IllegalStateException, IllegalArgumentException  {
-            Validate.checkErrorLabelOnVariantContain(passwordErrorLabelVariant);
+        public static void updateLocalizedErrorLabel(Label passwordErrorLabel, ErrorVariant passwordErrorLabelVariant, UnaryOperator<String> errorLabelFormatter) throws IllegalStateException, IllegalArgumentException  {
+            passwordErrorLabelVariant.checkOnError();
             switch (passwordErrorLabelVariant) {
-                case BLANK -> LabelsTextFactory.setFieldErrorLabelIsBlankLabel(passwordErrorLabel);
+                case BLANK -> LabelsTextFactory.setInputErrorLabelIsBlankLabel(passwordErrorLabel);
+                case BLANK_CHARS_AROUND -> ElementsLocaleSetter.setLocalizedText(passwordErrorLabel, "inputErrorLabelBlankCharsAround");
                 case TOO_SMALL -> LabelsTextFactory.setStringErrorLabelIsTooSmallLabel(passwordErrorLabel, errorLabelFormatter);
-                default -> throw new IllegalArgumentException("Wrong enum value");
+                default -> throw new IllegalStateException("Wrong enum value");
             };
+        }
+
+        public static InputWithErrorLabelProcess initProcessor(TextInputControl passwordField, Label passwordErrorLabel) {
+            var process = initProcessor();
+            process.setInputValueToValidate(passwordField);
+            process.setErrorLabel(passwordErrorLabel);
+            return process;
+        }
+
+        public static InputWithErrorLabelProcess initProcessor() {
+            var formatters = new HashMap<ErrorVariant, UnaryOperator<String>>();
+            formatters.put(TOO_SMALL, (var string) -> string.formatted(5));
+            return new Validate.InputWithErrorLabelProcess.Builder()
+                    .setValidator(Password::validate)
+                    .setErrorLabelInCurrentLanguageSetter(Password::updateLocalizedErrorLabel)
+                    .setErrorLabelFormatters(formatters)
+                    .build();
         }
     }
 
@@ -335,7 +383,7 @@ public class Validate {
          * @return BLANK (only empty symbols or nothing) or TOO_SMALL (len without corner empty symbols is lower than 5),
          * NONE if hasn't
          */
-        public static LabelErrorVariant validate(String repeatedPassword) {
+        public static ErrorVariant validate(TextInputControl password, String repeatedPassword) {
             repeatedPassword = repeatedPassword.trim();
             if (repeatedPassword.isEmpty()) {
                 return BLANK;
@@ -343,42 +391,112 @@ public class Validate {
             if (repeatedPassword.length() < 5) {
                 return TOO_SMALL;
             }
+            if (!repeatedPassword.equals(password.getText().trim())) {
+                return NOT_EQUALS_TO;
+            }
             return NONE;
         }
 
         /**
-         * @throws IllegalStateException if variant is NONE
-         * @throws IllegalArgumentException if variant is not BLANK or TOO_SMALL
+         * @throws IllegalStateException if variant is NONE or not BLANK, TOO_SMALL or NOT_EQUALS_TO
+         * @throws IllegalArgumentException if format is null, when needed
          */
-        public static void setErrorLabelInCurrentLanguage(Label passwordErrorLabel, LabelErrorVariant passwordErrorLabelVariant, UnaryOperator<String> errorLabelFormatter) throws IllegalStateException, IllegalArgumentException {
-            Validate.checkErrorLabelOnVariantContain(passwordErrorLabelVariant);
+        public static void updateLocalizedErrorLabel(Label passwordErrorLabel, ErrorVariant passwordErrorLabelVariant, UnaryOperator<String> errorLabelFormatter) throws IllegalStateException, IllegalArgumentException {
+            passwordErrorLabelVariant.checkOnError();
             switch (passwordErrorLabelVariant) {
-                case BLANK -> LabelsTextFactory.setFieldErrorLabelIsBlankLabel(passwordErrorLabel);
+                case BLANK -> LabelsTextFactory.setInputErrorLabelIsBlankLabel(passwordErrorLabel);
                 case TOO_SMALL -> LabelsTextFactory.setStringErrorLabelIsTooSmallLabel(passwordErrorLabel, errorLabelFormatter);
-                case NOT_EQUALS_TO -> ElementsLocaleSetter.setLabelTextInCurrentLanguage(passwordErrorLabel, "confirmPasswordErrorLabelNotEqualsToPassword");
-                default -> throw new IllegalArgumentException("Wrong enum value");
-            };
+                case NOT_EQUALS_TO -> ElementsLocaleSetter.setLocalizedText(passwordErrorLabel, "confirmPasswordErrorLabelNotEqualsToPassword");
+                default -> throw new IllegalStateException("Wrong enum value");
+            }
+        }
+
+        public static InputWithErrorLabelProcess initProcessor(TextInputControl passwordInput, TextInputControl confirmPasswordField, Label confirmPasswordErrorLabel) {
+            var process = initProcessor(passwordInput);
+            process.setInputValueToValidate(confirmPasswordField);
+            process.setErrorLabel(confirmPasswordErrorLabel);
+            return process;
+        }
+
+        public static InputWithErrorLabelProcess initProcessor(TextInputControl passwordInput) {
+            var formatters = new HashMap<ErrorVariant, UnaryOperator<String>>();
+            formatters.put(TOO_SMALL, (var string) -> string.formatted(5) );
+            return new Validate.InputWithErrorLabelProcess.Builder()
+                    .setValidator((var confirmPassword) -> ConfirmPassword.validate(passwordInput, confirmPassword))
+                    .setErrorLabelInCurrentLanguageSetter(ConfirmPassword::updateLocalizedErrorLabel)
+                    .setErrorLabelFormatters(formatters)
+                    .build();
         }
     }
 
 
     public static class SimpleString {
-        public static LabelErrorVariant validateIfBlank(String string) {
+        public static ErrorVariant validateIfBlank(String string) {
             return string.isBlank() ? BLANK : NONE;
         }
 
         /**
-         * @throws IllegalStateException if variant is NONE
-         * @throws IllegalArgumentException if variant is not BLANK, TOO_SMALL or TOO_BIG
+         * @param minLength can be null
+         * @param maxLength can be null
          */
-        public static void setErrorLabelInCurrentLanguage(Label simpleStringErrorLabel, LabelErrorVariant simpleStringErrorLabelVariant, UnaryOperator<String> errorLabelFormatter) throws IllegalStateException, IllegalArgumentException {
-            Validate.checkErrorLabelOnVariantContain(simpleStringErrorLabelVariant);
-            switch (simpleStringErrorLabelVariant) {
-                case BLANK -> LabelsTextFactory.setFieldErrorLabelIsBlankLabel(simpleStringErrorLabel);
-                case TOO_BIG -> LabelsTextFactory.setStringErrorLabelIsTooBigLabel(simpleStringErrorLabel, errorLabelFormatter);
-                case TOO_SMALL -> LabelsTextFactory.setStringErrorLabelIsTooSmallLabel(simpleStringErrorLabel, errorLabelFormatter);
-                default -> throw new IllegalArgumentException("Wrong enum value");
+        public static ErrorVariant validate(String string, Integer minLength, Integer maxLength) {
+            if (minLength != null && string.length() < minLength) {
+                return TOO_SMALL;
             }
+            if (maxLength != null && string.length() > maxLength) {
+                return TOO_BIG;
+            }
+            return NONE;
+        }
+
+        /**
+         * @throws IllegalStateException if variant is NONE or not TOO_SMALL or TOO_BIG
+         * @throws IllegalArgumentException if format is null, when needed
+         */
+        public static void updateLocalizedErrorLabel(Label simpleStringErrorLabel, ErrorVariant simpleStringErrorLabelVariant, UnaryOperator<String> errorLabelFormatter) throws IllegalStateException, IllegalArgumentException {
+            simpleStringErrorLabelVariant.checkOnError();
+            switch (simpleStringErrorLabelVariant) {
+                case TOO_SMALL -> LabelsTextFactory.setStringErrorLabelIsTooSmallLabel(simpleStringErrorLabel, errorLabelFormatter);
+                case TOO_BIG -> LabelsTextFactory.setStringErrorLabelIsTooBigLabel(simpleStringErrorLabel, errorLabelFormatter);
+                default -> throw new IllegalStateException("Wrong enum value");
+            }
+        }
+
+        public static InputWithErrorLabelProcess initProcessor(TextInputControl simpleStringField, Label confirmPasswordErrorLabel, Integer maxLength) {
+            return initProcessor(simpleStringField, confirmPasswordErrorLabel, null, maxLength);
+        }
+
+        /**
+         * @param minLength null if none
+         * @param maxLength null if none
+         */
+        public static InputWithErrorLabelProcess initProcessor(TextInputControl simpleStringField, Label simpleStringErrorLabel, Integer minLength, Integer maxLength) {
+            var process = initProcessor(minLength, maxLength);
+            process.setInputValueToValidate(simpleStringField);
+            process.setErrorLabel(simpleStringErrorLabel);
+            return process;
+        }
+
+        /**
+         * @param maxLength null if none
+         */
+        public static InputWithErrorLabelProcess initProcessor(Integer maxLength) {
+            return initProcessor(null, maxLength);
+        }
+
+        /**
+         * @param minLength null if none
+         * @param maxLength null if none
+         */
+        public static InputWithErrorLabelProcess initProcessor(Integer minLength, Integer maxLength) {
+            var formatters = new HashMap<ErrorVariant, UnaryOperator<String>>();
+            formatters.put(TOO_SMALL, (var string) -> string.formatted(minLength) );
+            formatters.put(TOO_BIG, (var string) -> string.formatted(maxLength) );
+            return new Validate.InputWithErrorLabelProcess.Builder()
+                    .setValidator((var string) -> SimpleString.validate(string, minLength, maxLength))
+                    .setErrorLabelInCurrentLanguageSetter(SimpleString::updateLocalizedErrorLabel)
+                    .setErrorLabelFormatters(formatters)
+                    .build();
         }
     }
 
@@ -387,7 +505,7 @@ public class Validate {
      * @param validator validates String, returns NONE if ok, variant of error else
      * @throws IllegalArgumentException if labelErrorVariantBeforeCheck is null
      */
-    public static LabelErrorVariant validateIfNone(Function<String, LabelErrorVariant> validator, String stringToValidate, LabelErrorVariant labelErrorVariantBeforeCheck) throws IllegalArgumentException {
+    public static ErrorVariant validateIfNone(Function<String, ErrorVariant> validator, String stringToValidate, ErrorVariant labelErrorVariantBeforeCheck) throws IllegalArgumentException {
         if (labelErrorVariantBeforeCheck == null) {
             throw new IllegalArgumentException("Shouldn't be null");
         }
@@ -398,14 +516,14 @@ public class Validate {
     }
 
     public static class Numbers {
-        public static String numberPattern = "^-?(0|[1-9]\\d+)\\.?\\d*$";
-        public static String floatNumberPattern = "^-?(0|[1-9]\\d+)\\.\\d+$";
+        public static String numberPattern = "^-?(0|[1-9]\\d*)\\.?\\d*$";
+        public static String floatNumberPattern = "^-?(0|[1-9]\\d*)\\.\\d+$";
 
         /**
          * @param trimmedString is trimmed string
          * @return checks only is number (NOT_EVEN_NUMBER)
          */
-        public static LabelErrorVariant validateNumber(String trimmedString) {
+        public static ErrorVariant validateNumber(String trimmedString) {
             return Pattern.matches(numberPattern, trimmedString) ? NONE : NOT_EVEN_NUMBER;
         }
 
@@ -413,14 +531,14 @@ public class Validate {
          * @param trimmedString is trimmed string
          * @return checks only is negative number (FLOAT)
          */
-        public static LabelErrorVariant validateNotFloat(String trimmedString) {
+        public static ErrorVariant validateNotFloat(String trimmedString) {
             return Pattern.matches(floatNumberPattern, trimmedString) ? FLOAT : NONE;
         }
 
         /**
          * tries to parse as long
          */
-        public static LabelErrorVariant validateNumberNotFloatOnLongBound(String numberString) {
+        public static ErrorVariant validateNumberNotFloatOnLongBound(String numberString) {
             try {
                 Long.parseLong(numberString);
                 return NONE;
@@ -432,7 +550,7 @@ public class Validate {
         /**
          * tries to parse as integer
          */
-        public static LabelErrorVariant validateNumberNotFloatOnIntegerBound(String numberString) {
+        public static ErrorVariant validateNumberNotFloatOnIntegerBound(String numberString) {
             try {
                 Integer.parseInt(numberString);
                 return NONE;
@@ -445,7 +563,7 @@ public class Validate {
          * @throws IllegalStateException if string is not a number
          * @return Satisfies the requirements of Validator.validateIfNone validator func
          */
-        public static LabelErrorVariant validateNumberValueForValidateIfNone(String string, Predicate<Float> errorTester, LabelErrorVariant errorVariant) throws IllegalStateException {
+        public static ErrorVariant validateNumberValueForValidateIfNone(String string, Predicate<Float> errorTester, ErrorVariant errorVariant) throws IllegalStateException {
             try {
                 var numberToTest = Float.parseFloat(string);
                 if (errorTester.test(numberToTest)) {
@@ -461,21 +579,21 @@ public class Validate {
         /**
          * @throws IllegalStateException if it is not a number
          */
-        public static LabelErrorVariant validatePositiveNumber(String string) throws IllegalStateException {
+        public static ErrorVariant validatePositiveNumber(String string) throws IllegalStateException {
             return validateNumberValueForValidateIfNone(string, (var number) -> number <= 0, NOT_POSITIVE);
         }
 
         /**
          * @throws IllegalStateException if it is not a number
          */
-        public static LabelErrorVariant validateNotNegativeNumber(String string) throws IllegalStateException {
+        public static ErrorVariant validateNotNegativeNumber(String string) throws IllegalStateException {
             return validateNumberValueForValidateIfNone(string, (var number) -> number < 0, NEGATIVE);
         }
 
         /**
          * @param trimmedString is trimmed string
          */
-        public static LabelErrorVariant validateLongNumber(String trimmedString) {
+        public static ErrorVariant validateLongNumber(String trimmedString) {
             var errorVariant = NONE;
             errorVariant = validateIfNone(Numbers::validateNumber, trimmedString, errorVariant);
             errorVariant = validateIfNone(Numbers::validateNotFloat, trimmedString, errorVariant);
@@ -488,7 +606,7 @@ public class Validate {
          * @param trimmedString is trimmed string
          * @return Satisfies the requirements of Validator.validateIfNone validator func
          */
-        public static LabelErrorVariant validateIntegerNumber(String trimmedString) {
+        public static ErrorVariant validateIntegerNumber(String trimmedString) {
             var errorVariant = NONE;
             errorVariant = validateIfNone(Numbers::validateNumber, trimmedString, errorVariant);
             errorVariant = validateIfNone(Numbers::validateNotFloat, trimmedString, errorVariant);
@@ -496,21 +614,21 @@ public class Validate {
             return errorVariant;
         }
 
-        public static LabelErrorVariant validatePositiveInteger(String trimmedString) {
+        public static ErrorVariant validatePositiveInteger(String trimmedString) {
             var errorVariant = NONE;
             errorVariant = validateIfNone(Numbers::validateIntegerNumber, trimmedString, errorVariant) ;
             errorVariant = validateIfNone(Numbers::validatePositiveNumber, trimmedString, errorVariant) ;
             return errorVariant;
         }
 
-        public static LabelErrorVariant validatePositiveLong(String trimmedString) {
+        public static ErrorVariant validatePositiveLong(String trimmedString) {
             var errorVariant = NONE;
             errorVariant = validateIfNone(Numbers::validateLongNumber, trimmedString, errorVariant) ;
             errorVariant = validateIfNone(Numbers::validatePositiveNumber, trimmedString, errorVariant) ;
             return errorVariant;
         }
 
-        public static LabelErrorVariant validateNotNegativeFloat(String string) {
+        public static ErrorVariant validateNotNegativeFloat(String string) {
             var trimmedString = string.trim();
             var errorVariant = NONE;
             errorVariant = validateIfNone(Numbers::validateNumber, trimmedString, errorVariant);
@@ -518,28 +636,63 @@ public class Validate {
             return errorVariant;
         }
 
-        public static LabelErrorVariant validateFloatOrDouble(String string) {
+        public static ErrorVariant validateFloatOrDouble(String string) {
             var trimmedString = string.trim();
             var errorVariant = NONE;
             errorVariant = validateIfNone(Numbers::validateNumber, trimmedString, errorVariant);
             return errorVariant;
         }
 
+        public static InputWithErrorLabelProcess initPositiveIntegerProcessor(TextInputControl numberInput, Label numberErrorLabel) {
+            return initProcessor(Numbers::validatePositiveInteger, numberInput, numberErrorLabel);
+        }
+
+        public static InputWithErrorLabelProcess initLongProcessor(TextInputControl numberInput, Label numberErrorLabel) {
+            return initProcessor(Numbers::validateLongNumber, numberInput, numberErrorLabel);
+        }
+
+        public static InputWithErrorLabelProcess initPositiveLongProcessor(TextInputControl numberInput, Label numberErrorLabel) {
+            return initProcessor(Numbers::validatePositiveLong, numberInput, numberErrorLabel);
+        }
+
+        public static InputWithErrorLabelProcess initNotNegativeFloatProcessor(TextInputControl numberInput, Label numberErrorLabel) {
+            return initProcessor(Numbers::validateNotNegativeFloat, numberInput, numberErrorLabel);
+        }
+
+        public static InputWithErrorLabelProcess initFloatOrDoubleProcessor(TextInputControl numberInput, Label numberErrorLabel) {
+            return initProcessor(Numbers::validateFloatOrDouble, numberInput, numberErrorLabel);
+        }
+
+        public static InputWithErrorLabelProcess initProcessor(Function<String, ErrorVariant> validator, TextInputControl numberField, Label errorLabel) {
+            var process = initProcessor(validator);
+            process.setInputValueToValidate(numberField);
+            process.setErrorLabel(errorLabel);
+            return process;
+        }
+
+        public static InputWithErrorLabelProcess initProcessor(Function<String, ErrorVariant> validator) {
+            return new Validate.InputWithErrorLabelProcess.Builder()
+                    .setValidator(validator)
+                    .setErrorLabelInCurrentLanguageSetter(Numbers::updateLocalizedErrorLabel)
+                    .build();
+        }
+
         /**
-         * @throws IllegalStateException if variant is NONE
-         * @throws IllegalArgumentException if variant is not BLANK or TOO_SMALL
+         * @param errorLabelFormatter is always null
+         * @throws IllegalStateException if variant is NONE or not BLANK or TOO_SMALL
+         * @throws IllegalArgumentException if formatter is null when needed
          */
-        public static void setErrorLabelInCurrentLanguage(Label numberErrorLabel, LabelErrorVariant numberErrorLabelVariant, UnaryOperator<String> errorLabelFormatter) throws IllegalStateException, IllegalArgumentException {
-            Validate.checkErrorLabelOnVariantContain(numberErrorLabelVariant);
+        public static void updateLocalizedErrorLabel(Label numberErrorLabel, ErrorVariant numberErrorLabelVariant, UnaryOperator<String> errorLabelFormatter) throws IllegalStateException, IllegalArgumentException {
+            numberErrorLabelVariant.checkOnError();
             switch (numberErrorLabelVariant) {
-                case BLANK -> LabelsTextFactory.setFieldErrorLabelIsBlankLabel(numberErrorLabel);
-                case NOT_EVEN_NUMBER -> ElementsLocaleSetter.setLabelTextInCurrentLanguage(numberErrorLabel, "numberErrorLabelNotNumber");
-                case FLOAT -> ElementsLocaleSetter.setLabelTextInCurrentLanguage(numberErrorLabel, "numberErrorLabelIsFloat");
-                case NEGATIVE -> ElementsLocaleSetter.setLabelTextInCurrentLanguage(numberErrorLabel, "numberErrorLabelIsNegative");
-                case NOT_POSITIVE -> ElementsLocaleSetter.setLabelTextInCurrentLanguage(numberErrorLabel, "numberErrorLabelNotPositive");
-                case TOO_BIG -> LabelsTextFactory.setStringErrorLabelIsTooBigLabel(numberErrorLabel, errorLabelFormatter);
-                case NOT_EQUALS_TO -> ElementsLocaleSetter.setLabelTextInCurrentLanguage(numberErrorLabel, "confirmPasswordErrorLabelNotEqualsToPassword");
-                default -> throw new IllegalArgumentException("Wrong enum value");
+                case BLANK -> LabelsTextFactory.setInputErrorLabelIsBlankLabel(numberErrorLabel);
+                case NOT_EVEN_NUMBER -> ElementsLocaleSetter.setLocalizedText(numberErrorLabel, "numberErrorLabelNotNumber");
+                case FLOAT -> ElementsLocaleSetter.setLocalizedText(numberErrorLabel, "numberErrorLabelIsFloat");
+                case NEGATIVE -> ElementsLocaleSetter.setLocalizedText(numberErrorLabel, "numberErrorLabelIsNegative");
+                case NOT_POSITIVE -> ElementsLocaleSetter.setLocalizedText(numberErrorLabel, "numberErrorLabelNotPositive");
+                case TOO_BIG -> ElementsLocaleSetter.setLocalizedText(numberErrorLabel, "numberErrorLabelTooBig");
+                case NOT_EQUALS_TO -> ElementsLocaleSetter.setLocalizedText(numberErrorLabel, "confirmPasswordErrorLabelNotEqualsToPassword");
+                default -> throw new IllegalStateException("Wrong enum value");
             };
         }
     }

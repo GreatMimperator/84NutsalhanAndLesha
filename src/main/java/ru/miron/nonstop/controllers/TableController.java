@@ -26,9 +26,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.Temporal;
 import java.util.Comparator;
 import java.util.LinkedList;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import static ru.miron.nonstop.locales.entities.LabelText.TextType.PLAIN_TEXT;
 
@@ -54,6 +51,7 @@ public class TableController implements LanguageUpdatable {
 
     TableColumn<DragonWithKeyAndOwner, String> ownerColumn;
     TableColumn<DragonWithKeyAndOwner, Long> idColumn;
+    TableColumn<DragonWithKeyAndOwner, String> keyColumn;
     TableColumn<DragonWithKeyAndOwner, String> nameColumn;
     TableColumn<DragonWithKeyAndOwner, Float> xColumn;
     TableColumn<DragonWithKeyAndOwner, Long> yColumn;
@@ -87,8 +85,6 @@ public class TableController implements LanguageUpdatable {
         // dragons list init
         dragonsObservableList = FXCollections.synchronizedObservableList(FXCollections.observableList(new LinkedList<>()));
         dragonsTableView.setItems(dragonsObservableList);
-        dragonsObservableList.add(new DragonWithKeyAndOwner(new Dragon(222222222222222L, "longnameeeeeeeeeeeeeeeeeeeeee", new Coordinates(1.2222222f, 22222222222222222L), ZonedDateTime.now(), 11111111111111111L, "long description i want to tell", 2123, DragonType.AIR, new DragonCave(21.12121f)), "key", "loginnnnnnnnnnnnnnn"));
-        dragonsObservableList.add(new DragonWithKeyAndOwner(new Dragon(2123L, "ado", new Coordinates(1.2222222f, 22222222222222222L), ZonedDateTime.now(), 11111111111111111L, "long description i want to tell", 2123, DragonType.AIR, new DragonCave(21.12121f)), "key", "loginnnnnnnnnnnnnnn"));
 //        dataUpdater.scheduleAtFixedRate(updateTableContentsTask(),0,  3, TimeUnit.SECONDS);
         updateTableContentsTask().run();
     }
@@ -113,6 +109,7 @@ public class TableController implements LanguageUpdatable {
         // init columns
         ownerColumn = new TableColumn<DragonWithKeyAndOwner, String>();
         idColumn = new TableColumn<DragonWithKeyAndOwner, Long>();
+        keyColumn = new TableColumn<DragonWithKeyAndOwner, String>();
         nameColumn = new TableColumn<DragonWithKeyAndOwner, String>();
         xColumn = new TableColumn<DragonWithKeyAndOwner, Float>();
         yColumn = new TableColumn<DragonWithKeyAndOwner, Long>();
@@ -123,8 +120,9 @@ public class TableController implements LanguageUpdatable {
         typeColumn = new TableColumn<DragonWithKeyAndOwner, String>();
         treasuresColumn = new TableColumn<DragonWithKeyAndOwner, Float>();
         // setting cell value factories
-        ownerColumn.setCellValueFactory(dragonWithKeyAndOwner -> dragonWithKeyAndOwner.getValue().nameProperty());
+        ownerColumn.setCellValueFactory(dragonWithKeyAndOwner -> dragonWithKeyAndOwner.getValue().ownerProperty());
         idColumn.setCellValueFactory(dragonWithKeyAndOwner -> dragonWithKeyAndOwner.getValue().idProperty().asObject());
+        keyColumn.setCellValueFactory(dragonWithKeyAndOwner -> dragonWithKeyAndOwner.getValue().keyProperty());
         nameColumn.setCellValueFactory(dragonWithKeyAndOwner -> dragonWithKeyAndOwner.getValue().nameProperty());
         xColumn.setCellValueFactory(dragonWithKeyAndOwner -> dragonWithKeyAndOwner.getValue().xProperty().asObject());
         yColumn.setCellValueFactory(dragonWithKeyAndOwner -> dragonWithKeyAndOwner.getValue().yProperty().asObject());
@@ -141,7 +139,7 @@ public class TableController implements LanguageUpdatable {
         nameColumn.setComparator(Comparator.comparingInt(String::length));
         descriptionColumn.setComparator(Comparator.comparingInt(String::length));
         // adding columns
-        dragonsTableView.getColumns().setAll(ownerColumn, idColumn, nameColumn, xColumn, yColumn, dateColumn, ageColumn, descriptionColumn, wingspanColumn, typeColumn, treasuresColumn);
+        dragonsTableView.getColumns().setAll(ownerColumn, idColumn, keyColumn, nameColumn, xColumn, yColumn, dateColumn, ageColumn, descriptionColumn, wingspanColumn, typeColumn, treasuresColumn);
         // table is not resizable
         // so bounding columns
         for (var column : dragonsTableView.getColumns()) {
@@ -152,13 +150,13 @@ public class TableController implements LanguageUpdatable {
     }
 
     @FXML
-    public void exitBtnActionListener() {
+    public void setEnterScene() {
 //        dataUpdater.shutdownNow();
         EmoCore.setHelloScene();
     }
 
     @FXML
-    public void commandsListBtnActionListener(ActionEvent actionEvent) {
+    public void openCommandsListWindow(ActionEvent actionEvent) {
         EmoCore.tryCreateCommandsListWindow();
     }
 
@@ -196,6 +194,7 @@ public class TableController implements LanguageUpdatable {
                     var dragonWithMetaInfo = String.format(dragonWithMetaInfoTemplate,
                             AppLocaleManager.getTextByLabel("ownerLoginName"), clickedDragonWithMeta.getOwnerLogin(),
                             AppLocaleManager.getTextByLabel("idName"), clickedDragonWithMeta.getDragon().getId(),
+                            AppLocaleManager.getTextByLabel("keyName"), clickedDragonWithMeta.getKey(),
                             AppLocaleManager.getTextByLabel("nameName"), clickedDragonWithMeta.getDragon().getName(),
                             AppLocaleManager.getTextByLabel("xName"), clickedDragonWithMeta.getDragon().getCoordinates().getX(),
                             AppLocaleManager.getTextByLabel("yName"), clickedDragonWithMeta.getDragon().getCoordinates().getY(),
@@ -203,7 +202,7 @@ public class TableController implements LanguageUpdatable {
                             AppLocaleManager.getTextByLabel("ageName"), clickedDragonWithMeta.getDragon().getAge(),
                             AppLocaleManager.getTextByLabel("descriptionName"), clickedDragonWithMeta.getDragon().getDescription(),
                             AppLocaleManager.getTextByLabel("wingspanName"), clickedDragonWithMeta.getDragon().getWingspan(),
-                            AppLocaleManager.getTextByLabel("typeName"), clickedDragonWithMeta.getCapitalizedType(),
+                            AppLocaleManager.getTextByLabel("typeName"), ElementsLocaleSetter.getLocalizedDragonType(clickedDragonWithMeta.getDragon().getType()),
                             AppLocaleManager.getTextByLabel("treasuresName"), clickedDragonWithMeta.getDragon().getCave().getNumberOfTreasures());
                     try {
                         EmoCore.createInfoAutoClosableWindow(new LabelText(dragonWithMetaInfo, PLAIN_TEXT), "Clicked dragon info");
@@ -215,21 +214,22 @@ public class TableController implements LanguageUpdatable {
 
     @Override
     public void updateLanguage() {
-        ElementsLocaleSetter.setHeaderTextOfColumnInConcreteLanguage(ownerColumn, "ownerLoginName");
-        ElementsLocaleSetter.setHeaderTextOfColumnInConcreteLanguage(idColumn, "idName");
-        ElementsLocaleSetter.setHeaderTextOfColumnInConcreteLanguage(nameColumn, "nameName");
-        ElementsLocaleSetter.setHeaderTextOfColumnInConcreteLanguage(xColumn, "xName");
-        ElementsLocaleSetter.setHeaderTextOfColumnInConcreteLanguage(yColumn, "yName");
-        ElementsLocaleSetter.setHeaderTextOfColumnInConcreteLanguage(dateColumn, "dateName");
-        ElementsLocaleSetter.setHeaderTextOfColumnInConcreteLanguage(ageColumn, "ageName");
-        ElementsLocaleSetter.setHeaderTextOfColumnInConcreteLanguage(descriptionColumn, "descriptionName");
-        ElementsLocaleSetter.setHeaderTextOfColumnInConcreteLanguage(wingspanColumn, "wingspanName");
-        ElementsLocaleSetter.setHeaderTextOfColumnInConcreteLanguage(typeColumn, "typeName");
-        ElementsLocaleSetter.setHeaderTextOfColumnInConcreteLanguage(treasuresColumn, "treasuresName");
-        ElementsLocaleSetter.setLabelTextInCurrentLanguage(authorizedAsLabel, "authorizedAsName");
-        ElementsLocaleSetter.setButtonLabelInCurrentLanguage(exitButton, "exitButtonName");
-        ElementsLocaleSetter.setButtonLabelInCurrentLanguage(commandsListButton, "commandsButtonName");
-        ElementsLocaleSetter.setButtonLabelInCurrentLanguage(filterButton, "filterButtonName");
+        ElementsLocaleSetter.setHeaderLocalizedText(ownerColumn, "ownerLoginName");
+        ElementsLocaleSetter.setHeaderLocalizedText(idColumn, "idName");
+        ElementsLocaleSetter.setHeaderLocalizedText(keyColumn, "keyName");
+        ElementsLocaleSetter.setHeaderLocalizedText(nameColumn, "nameName");
+        ElementsLocaleSetter.setHeaderLocalizedText(xColumn, "xName");
+        ElementsLocaleSetter.setHeaderLocalizedText(yColumn, "yName");
+        ElementsLocaleSetter.setHeaderLocalizedText(dateColumn, "dateName");
+        ElementsLocaleSetter.setHeaderLocalizedText(ageColumn, "ageName");
+        ElementsLocaleSetter.setHeaderLocalizedText(descriptionColumn, "descriptionName");
+        ElementsLocaleSetter.setHeaderLocalizedText(wingspanColumn, "wingspanName");
+        ElementsLocaleSetter.setHeaderLocalizedText(typeColumn, "typeName");
+        ElementsLocaleSetter.setHeaderLocalizedText(treasuresColumn, "treasuresName");
+        ElementsLocaleSetter.setLocalizedText(authorizedAsLabel, "authorizedAsName");
+        ElementsLocaleSetter.setLocalizedText(exitButton, "exitButtonName");
+        ElementsLocaleSetter.setLocalizedText(commandsListButton, "commandsButtonName");
+        ElementsLocaleSetter.setLocalizedText(filterButton, "filterButtonName");
         AppLocaleChoiceBoxSetter.updateLanguage(languageSelector);
     }
 

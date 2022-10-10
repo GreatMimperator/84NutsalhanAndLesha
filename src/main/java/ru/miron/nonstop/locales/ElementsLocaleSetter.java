@@ -1,53 +1,65 @@
 package ru.miron.nonstop.locales;
 
 import javafx.scene.control.*;
+import javafx.util.StringConverter;
+import ru.miron.nonstop.givenClasses.DragonType;
 import ru.miron.nonstop.locales.entities.LabelText;
 
 import static ru.miron.nonstop.locales.entities.LabelText.TextType.*;
 
 public class ElementsLocaleSetter {
-    public static void setLabelTextInCurrentLanguage(Label label, String labelName) {
-        setLabelTextInCurrentLanguage(label, new LabelText(labelName, LABEL_NAME));
+    public static void setLocalizedText(Labeled labeled, String labelName) {
+        setText(labeled, new LabelText(labelName, LABEL_NAME));
     }
 
-    public static void setLabelTextInCurrentLanguage(Label label, LabelText labelText) {
+    public static void setText(Labeled labeled, LabelText labelText) {
         var text = labelText.getPlainText();
-        label.setText(text);
+        labeled.setText(text);
     }
 
-    public static void setTextFieldPromptTextInCurrentLanguage(TextField field, String promptTextName) {
-        setTextFieldPromptTextInCurrentLanguage(field, new LabelText(promptTextName, LABEL_NAME));
+    public static void setLocalizedPromptText(TextInputControl input, String labelName) {
+        setPromptText(input, new LabelText(labelName, LABEL_NAME));
     }
 
-    public static void setTextFieldPromptTextInCurrentLanguage(TextField field, LabelText promptLabelText) {
-        var text = promptLabelText.getPlainText();
-        field.setPromptText(text);
-    }
-
-    public static void setButtonLabelInCurrentLanguage(Button button, String labelName) {
-        setButtonLabelInCurrentLanguage(button, new LabelText(labelName, LABEL_NAME));
-    }
-
-    public static void setButtonLabelInCurrentLanguage(Button button, LabelText labelText) {
+    public static void setPromptText(TextInputControl input, LabelText labelText) {
         var text = labelText.getPlainText();
-        button.setText(text);
+        input.setPromptText(text);
     }
 
-    public static void setHeaderTextOfColumnInConcreteLanguage(TableColumn tableColumn, String textName) {
-        setHeaderTextOfColumnInConcreteLanguage(tableColumn, new LabelText(textName, LABEL_NAME));
+    public static void setHeaderLocalizedText(TableColumn tableColumn, String labelName) {
+        setHeaderText(tableColumn, new LabelText(labelName, LABEL_NAME));
     }
 
-    public static void setHeaderTextOfColumnInConcreteLanguage(TableColumn tableColumn, LabelText labelText) {
+    public static void setHeaderText(TableColumn tableColumn, LabelText labelText) {
         var text = labelText.getPlainText();
         tableColumn.setText(text);
     }
 
-    public static void setTextAreaPromptTextInCurrentLanguage(TextArea textArea, String promptLabelName) {
-        setTextAreaPromptTextInCurrentLanguage(textArea, new LabelText(promptLabelName, LABEL_NAME));
+    public static void setLocalizedDragonTypeChoiceBox(ChoiceBox<DragonType> dragonTypeChoiceBox) {
+        dragonTypeChoiceBox.getItems().forEach(System.out::println);
+        dragonTypeChoiceBox.setConverter(new StringConverter<DragonType>() {
+            @Override
+            public String toString(DragonType dragonType) {
+                return getLocalizedDragonType(dragonType);
+            }
+
+            @Override
+            public DragonType fromString(String s) {
+                throw new UnsupportedOperationException();
+            }
+        });
     }
 
-    public static void setTextAreaPromptTextInCurrentLanguage(TextArea textArea, LabelText promptLabelText) {
-        var text = promptLabelText.getPlainText();
-        textArea.setPromptText(text);
+    public static String getLocalizedDragonType(DragonType dragonType) {
+        if (dragonType == null) {
+            return "null";
+        }
+        var typeLabelName = switch (dragonType) {
+            case WATER -> "waterTypeName";
+            case UNDERGROUND -> "undergroundTypeName";
+            case AIR -> "airTypeName";
+            case FIRE -> "fireTypeName";
+        };
+        return AppLocaleManager.getTextByLabel(typeLabelName);
     }
 }

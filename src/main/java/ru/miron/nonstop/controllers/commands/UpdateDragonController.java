@@ -15,15 +15,19 @@ import ru.miron.nonstop.locales.LanguageUpdatable;
 import ru.miron.nonstop.logic.commands.Command;
 import ru.miron.nonstop.logic.commands.CommandAnswer;
 import ru.miron.nonstop.logic.commands.CommandName;
-import ru.miron.nonstop.logic.commands.args.InsertCommandArgs;
+import ru.miron.nonstop.logic.commands.args.UpdateCommandArgs;
 
 import java.io.IOException;
 
 import static ru.miron.nonstop.controllers.Validate.ErrorVariant;
 import static ru.miron.nonstop.controllers.Validate.ErrorVariant.NONE;
 
-public class InsertDragonController implements LanguageUpdatable {
-    public HBox insertDragonPane;
+public class UpdateDragonController implements LanguageUpdatable {
+    public HBox updateDragonPane;
+    public Label idLabel;
+    public TextField idField;
+    public Button fillWithPreviousDataButton;
+    public Label idErrorLabel;
     public Label nameLabel;
     public TextField nameField;
     public Label nameErrorLabel;
@@ -50,11 +54,12 @@ public class InsertDragonController implements LanguageUpdatable {
     public Label treasuresLabel;
     public TextField treasuresField;
     public Label treasuresErrorLabel;
-    public Button insertDragonButton;
+    public Button updateDragonButton;
     public Button clearInputsButton;
     public ChoiceBox<String> languageSelector;
     public Button exitButton;
 
+    public ErrorVariant idErrorLabelVariant;
     public ErrorVariant keyErrorLabelVariant;
     public ErrorVariant nameErrorLabelVariant;
     public ErrorVariant ageErrorLabelVariant;
@@ -64,6 +69,7 @@ public class InsertDragonController implements LanguageUpdatable {
     public ErrorVariant wingspanErrorLabelVariant;
     public ErrorVariant treasuresErrorLabelVariant;
 
+    private Validate.InputWithErrorLabelProcess idWithErrorLabelProcess;
     private Validate.InputWithErrorLabelProcess keyWithErrorLabelProcess;
     private Validate.InputWithErrorLabelProcess nameWithErrorLabelProcess;
     private Validate.InputWithErrorLabelProcess ageWithErrorLabelProcess;
@@ -76,7 +82,7 @@ public class InsertDragonController implements LanguageUpdatable {
 
     @FXML
     public void initialize() {
-        System.out.println("Inited insert dragon controller");
+        System.out.println("Inited update dragon controller");
         initErrorVariantsInfrastructure();
         Utils.resetTypeChoiceBox(typeChoiceBox);
         AppLocaleChoiceBoxSetter.setContentAndOnChangeLanguageChange(languageSelector);
@@ -84,6 +90,7 @@ public class InsertDragonController implements LanguageUpdatable {
     }
 
     private void initErrorVariantsInfrastructure() {
+        idErrorLabelVariant = NONE;
         keyErrorLabelVariant = NONE;
         nameErrorLabelVariant = NONE;
         ageErrorLabelVariant = NONE;
@@ -93,6 +100,7 @@ public class InsertDragonController implements LanguageUpdatable {
         wingspanErrorLabelVariant = NONE;
         treasuresErrorLabelVariant = NONE;
 
+        idWithErrorLabelProcess = Validate.Numbers.initPositiveLongProcessor(idField, idErrorLabel);
         keyWithErrorLabelProcess = Validate.SimpleString.initProcessor(keyField, keyErrorLabel, 1, 80);
         nameWithErrorLabelProcess = Validate.SimpleString.initProcessor(nameField, nameErrorLabel, 1, 80);
         ageWithErrorLabelProcess = Validate.Numbers.initPositiveLongProcessor(ageField, ageErrorLabel);
@@ -103,7 +111,48 @@ public class InsertDragonController implements LanguageUpdatable {
         treasuresWithErrorLabelProcess = Validate.Numbers.initNotNegativeFloatProcessor(treasuresField, treasuresErrorLabel);
     }
 
+    @FXML
+    public void fillWithPreviousData(ActionEvent actionEvent) {
+        idErrorLabelVariant = idWithErrorLabelProcess.updateErrorLabel();
+        if (idErrorLabelVariant == NONE) {
+            var id = Long.parseLong(idField.getText());
+            DragonWithKeyAndOwner previousDragon = EmoCore.getActualDragonsWithMetaById(id);
+            if (previousDragon == null) {
+                try {
+                    EmoCore.createInfoAutoClosableWindow("hasNotCashedDragonWithIdMsg", "Hasn't cached dragon with this id");
+                } catch (IOException e) {}
+                return;
+            }
+            var keyOfPrevious = previousDragon.getKey();
+            var nameOfPrevious = previousDragon.getDragon().getName();
+            var xCoordinateOfPrevious = previousDragon.getDragon().getCoordinates().getX();
+            var yCoordinateOfPrevious = previousDragon.getDragon().getCoordinates().getY();
+            var ageOfPrevious = previousDragon.getDragon().getAge();
+            var descriptionOfPrevious = previousDragon.getDragon().getDescription();
+            var wingspanOfPrevious = previousDragon.getDragon().getWingspan();
+            var typeOfPrevious = previousDragon.getDragon().getType();
+            var treasuresOfPrevious = previousDragon.getDragon().getCave().getNumberOfTreasures();
+            keyField.setText(keyOfPrevious);
+            nameField.setText(nameOfPrevious);
+            xField.setText(Float.toString(xCoordinateOfPrevious));
+            yField.setText(Long.toString(yCoordinateOfPrevious));
+            ageField.setText(Long.toString(ageOfPrevious));
+            descriptionArea.setText(descriptionOfPrevious);
+            wingspanField.setText(Integer.toString(wingspanOfPrevious));
+            typeChoiceBox.setValue(typeOfPrevious);
+            treasuresField.setText(Float.toString(treasuresOfPrevious));
+            try {
+                EmoCore.createInfoAutoClosableWindow("cashedDragonLoadedUsingIdMsg", "Cached dragon loaded with this id");
+            } catch (IOException e) {}
+        } else {
+            try {
+                EmoCore.createInfoAutoClosableWindow("wrongIdOfCashedDragonMsg", "Wrong cached dragon id");
+            } catch (IOException e) {}
+        }
+    }
+
     public void clearInputs(ActionEvent actionEvent) {
+        idField.clear();
         nameField.clear();
         ageField.clear();
         descriptionArea.clear();
@@ -111,18 +160,23 @@ public class InsertDragonController implements LanguageUpdatable {
         xField.clear();
         yField.clear();
         wingspanField.clear();
-        Utils.resetTypeChoiceBox(typeChoiceBox);
+        try {
+            Utils.resetTypeChoiceBox(typeChoiceBox);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         treasuresField.clear();
     }
 
-    public void tryInsert(ActionEvent actionEvent) {
+    public void tryUpdateDragon(ActionEvent actionEvent) {
         if (checkInputsAndShowIfBad()) {
-            System.out.println("Insert dragons fields are bad. So, wont send any data");
+            System.out.println("Update dragons fields are bad. So, wont send any data");
             try {
                 EmoCore.createInfoAutoClosableWindow("badEnteredInfoMsg", "Bad entered info");
             } catch (IOException e) {}
         } else {
             System.out.println("Dragon fields are good. So, will send to server");
+            var id = Long.parseLong(idField.getText());
             var key = keyField.getText();
             var name = nameField.getText();
             var xCoordinate = Float.parseFloat(xField.getText());
@@ -135,23 +189,28 @@ public class InsertDragonController implements LanguageUpdatable {
             var cave = new DragonCave(Float.parseFloat(treasuresField.getText()));
             var dragon = new Dragon(null, name, coordinates, null, age, description, wingspan, type, cave);
             var dragonWithKeyAndOwner = new DragonWithKeyAndOwner(dragon, key, null);
-            var insertCommand = new Command(CommandName.INSERT_DRAGON, EmoCore.enterEntry, new InsertCommandArgs(dragonWithKeyAndOwner));
-            CommandAnswer insertCommandAnswer;
+            var updateCommand = new Command(CommandName.UPDATE_DRAGON, EmoCore.enterEntry, new UpdateCommandArgs(id, dragonWithKeyAndOwner));
+            CommandAnswer updateCommandAnswer;
             try {
-                insertCommandAnswer = EmoCore.tryToGetCommandAnswerWithErrorWindowsGenOnFailOrErrorAnswer(insertCommand);
+                updateCommandAnswer = EmoCore.tryToGetCommandAnswerWithErrorWindowsGenOnFailOrErrorAnswer(updateCommand);
             } catch (IllegalStateException e) {
                 return;
             }
-            var insertState = insertCommandAnswer.getCommandAnswerWithoutArgs().getState();
-            switch (insertState) {
-                case "inserted" -> {
+            var updatedState = updateCommandAnswer.getCommandAnswerWithoutArgs().getState();
+            switch (updatedState) {
+                case "updated" -> {
                     try {
-                        EmoCore.createInfoAutoClosableWindow("dragonInsertedMsg", "Inserted");
+                        EmoCore.createInfoAutoClosableWindow("dragonUpdatedMsg", "Updated");
                     } catch (IOException ioe) {}
                 }
-                case "dublicate key" -> {
+                case "wrong id" -> {
                     try {
-                        EmoCore.createInfoAutoClosableWindow("duplicateKeyOnInsertMsg", "Dublicate key");
+                        EmoCore.createInfoAutoClosableWindow("wrongIdOnUpdateMsg", "Wrong id");
+                    } catch (IOException ioe) {}
+                }
+                case "not yours" -> {
+                    try {
+                        EmoCore.createInfoAutoClosableWindow("notYoursDragonMsg", "Not yours");
                     } catch (IOException ioe) {}
                 }
                 default -> {
@@ -162,6 +221,7 @@ public class InsertDragonController implements LanguageUpdatable {
     }
 
     private boolean checkInputsAndShowIfBad() {
+        idErrorLabelVariant = idWithErrorLabelProcess.updateErrorLabel();
         nameErrorLabelVariant = nameWithErrorLabelProcess.updateErrorLabel();
         ageErrorLabelVariant = ageWithErrorLabelProcess.updateErrorLabel();
         descriptionErrorLabelVariant = descriptionWithErrorLabelProcess.updateErrorLabel();
@@ -170,7 +230,8 @@ public class InsertDragonController implements LanguageUpdatable {
         yErrorLabelVariant = yCoordinateWithErrorLabelProcess.updateErrorLabel();
         wingspanErrorLabelVariant = wingspanWithErrorLabelProcess.updateErrorLabel();
         treasuresErrorLabelVariant = treasuresWithErrorLabelProcess.updateErrorLabel();
-        return nameErrorLabelVariant != NONE ||
+        return idErrorLabelVariant != NONE ||
+                nameErrorLabelVariant != NONE ||
                 ageErrorLabelVariant != NONE ||
                 descriptionErrorLabelVariant != NONE ||
                 keyErrorLabelVariant != NONE ||
@@ -186,11 +247,15 @@ public class InsertDragonController implements LanguageUpdatable {
     }
 
     public Stage getStage() {
-        return (Stage) insertDragonPane.getScene().getWindow();
+        return (Stage) updateDragonPane.getScene().getWindow();
     }
 
     @Override
     public void updateLanguage() {
+        ElementsLocaleSetter.setLocalizedText(idLabel, "idLabelName");
+        ElementsLocaleSetter.setLocalizedPromptText(idField, "positiveWholeNumberFieldPromptText");
+        idWithErrorLabelProcess.setLocalizedErrorLabelIfHas(idErrorLabelVariant);
+        ElementsLocaleSetter.setLocalizedText(fillWithPreviousDataButton, "filledWithPreviousDataButtonName");
         ElementsLocaleSetter.setLocalizedText(nameLabel, "nameLabelName");
         ElementsLocaleSetter.setLocalizedPromptText(nameField, "nameFieldPromptText");
         nameWithErrorLabelProcess.setLocalizedErrorLabelIfHas(nameErrorLabelVariant);
@@ -217,7 +282,7 @@ public class InsertDragonController implements LanguageUpdatable {
         ElementsLocaleSetter.setLocalizedText(treasuresLabel, "treasuresLabelName");
         ElementsLocaleSetter.setLocalizedPromptText(treasuresField, "notNegativeFloatNumberFieldPromptText");
         treasuresWithErrorLabelProcess.setLocalizedErrorLabelIfHas(ageErrorLabelVariant);
-        ElementsLocaleSetter.setLocalizedText(insertDragonButton, "insertDragonsButtonName");
+        ElementsLocaleSetter.setLocalizedText(updateDragonButton, "updateDragonButtonName");
         ElementsLocaleSetter.setLocalizedText(clearInputsButton, "clearInputsButtonName");
         ElementsLocaleSetter.setLocalizedText(exitButton, "exitButtonName");
     }

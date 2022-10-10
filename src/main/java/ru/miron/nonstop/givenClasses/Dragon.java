@@ -279,7 +279,7 @@ public class Dragon implements Comparable<Dragon>, JSONConvertable {
      * @throws IllegalArgumentException if description is null or empty 
      */
     public void setDescription(String description) throws IllegalArgumentException {
-        if (description == null || description.isEmpty()) {
+        if (description == null) {
             throw new IllegalArgumentException();
         }
         this.description  = description;
