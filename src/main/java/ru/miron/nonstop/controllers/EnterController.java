@@ -76,7 +76,7 @@ public class EnterController implements LanguageUpdatable {
         if (checkFieldsAndShowIfBad()) {
             System.out.println("Enter fields are bad. So, wont send any data");
             try {
-                EmoCore.createInfoAutoClosableWindow("badEnteredInfoMsg", "Bad entered info");
+                EmoCore.createInfoWindow("badEnteredInfoMsg", "Bad entered info");
             } catch (IOException e) {}
         } else {
             System.out.println("Enter fields are good. So, will send to server");
@@ -84,7 +84,7 @@ public class EnterController implements LanguageUpdatable {
             var registerCommand = new Command(CommandName.SIGN_IN, enterEntry, null);
             CommandAnswer signInCommandAnswer;
             try {
-                signInCommandAnswer = EmoCore.tryToGetCommandAnswerWithErrorWindowsGenOnFailOrErrorAnswer(registerCommand);
+                signInCommandAnswer = EmoCore.tryToGetAnswer(registerCommand);
             } catch (IllegalStateException e) {
                 return;
             }
@@ -97,12 +97,12 @@ public class EnterController implements LanguageUpdatable {
                 }
                 case WRONG_LOGIN -> {
                     try {
-                        EmoCore.createInfoAutoClosableWindow("signInLoginDoesntExistMsg", "Login doesn't exist");
+                        EmoCore.createInfoWindow("signInLoginDoesntExistMsg", "Login doesn't exist");
                     } catch (IOException e) {}
                 }
                 case WRONG_PASSWORD -> {
                     try {
-                        EmoCore.createInfoAutoClosableWindow("signInWrongPasswordMsg", "Wrong password");
+                        EmoCore.createInfoWindow("signInWrongPasswordMsg", "Wrong password");
                     } catch (IOException e) {}
                 }
                 default -> {
@@ -123,11 +123,6 @@ public class EnterController implements LanguageUpdatable {
         passwordErrorLabelVariant = passwordFieldWithErrorLabelProcess.updateErrorLabel();
         return loginErrorLabelVariant != NONE ||
                 passwordErrorLabelVariant != NONE;
-    }
-
-    private void hideErrorLabels() {
-        loginErrorLabel.setVisible(false);
-        passwordErrorLabel.setVisible(false);
     }
 
     public void setLabels() {

@@ -119,7 +119,7 @@ public class UpdateDragonController implements LanguageUpdatable {
             DragonWithKeyAndOwner previousDragon = EmoCore.getActualDragonsWithMetaById(id);
             if (previousDragon == null) {
                 try {
-                    EmoCore.createInfoAutoClosableWindow("hasNotCashedDragonWithIdMsg", "Hasn't cached dragon with this id");
+                    EmoCore.createInfoWindow("hasNotCashedDragonWithIdMsg", "Hasn't cached dragon with this id");
                 } catch (IOException e) {}
                 return;
             }
@@ -142,11 +142,11 @@ public class UpdateDragonController implements LanguageUpdatable {
             typeChoiceBox.setValue(typeOfPrevious);
             treasuresField.setText(Float.toString(treasuresOfPrevious));
             try {
-                EmoCore.createInfoAutoClosableWindow("cashedDragonLoadedUsingIdMsg", "Cached dragon loaded with this id");
+                EmoCore.createInfoWindow("cashedDragonLoadedUsingIdMsg", "Cached dragon loaded with this id");
             } catch (IOException e) {}
         } else {
             try {
-                EmoCore.createInfoAutoClosableWindow("wrongIdOfCashedDragonMsg", "Wrong cached dragon id");
+                EmoCore.createInfoWindow("wrongIdOfCashedDragonMsg", "Wrong cached dragon id");
             } catch (IOException e) {}
         }
     }
@@ -172,7 +172,7 @@ public class UpdateDragonController implements LanguageUpdatable {
         if (checkInputsAndShowIfBad()) {
             System.out.println("Update dragons fields are bad. So, wont send any data");
             try {
-                EmoCore.createInfoAutoClosableWindow("badEnteredInfoMsg", "Bad entered info");
+                EmoCore.createInfoWindow("badEnteredInfoMsg", "Bad entered info");
             } catch (IOException e) {}
         } else {
             System.out.println("Dragon fields are good. So, will send to server");
@@ -192,7 +192,7 @@ public class UpdateDragonController implements LanguageUpdatable {
             var updateCommand = new Command(CommandName.UPDATE_DRAGON, EmoCore.enterEntry, new UpdateCommandArgs(id, dragonWithKeyAndOwner));
             CommandAnswer updateCommandAnswer;
             try {
-                updateCommandAnswer = EmoCore.tryToGetCommandAnswerWithErrorWindowsGenOnFailOrErrorAnswer(updateCommand);
+                updateCommandAnswer = EmoCore.tryToGetAnswer(updateCommand);
             } catch (IllegalStateException e) {
                 return;
             }
@@ -200,17 +200,17 @@ public class UpdateDragonController implements LanguageUpdatable {
             switch (updatedState) {
                 case "updated" -> {
                     try {
-                        EmoCore.createInfoAutoClosableWindow("dragonUpdatedMsg", "Updated");
+                        EmoCore.createInfoWindow("dragonUpdatedMsg", "Updated");
                     } catch (IOException ioe) {}
                 }
                 case "wrong id" -> {
                     try {
-                        EmoCore.createInfoAutoClosableWindow("wrongIdOnUpdateMsg", "Wrong id");
+                        EmoCore.createInfoWindow("wrongIdOnUpdateMsg", "Wrong id");
                     } catch (IOException ioe) {}
                 }
                 case "not yours" -> {
                     try {
-                        EmoCore.createInfoAutoClosableWindow("notYoursDragonMsg", "Not yours");
+                        EmoCore.createInfoWindow("notYoursDragonMsg", "Not yours");
                     } catch (IOException ioe) {}
                 }
                 default -> {
@@ -219,6 +219,11 @@ public class UpdateDragonController implements LanguageUpdatable {
             }
         }
     }
+
+    public void setIdTextFieldValue(long id) {
+        idField.setText(Long.toString(id));
+    }
+
 
     private boolean checkInputsAndShowIfBad() {
         idErrorLabelVariant = idWithErrorLabelProcess.updateErrorLabel();
@@ -243,7 +248,6 @@ public class UpdateDragonController implements LanguageUpdatable {
 
     public void openCommandsListInstead(ActionEvent actionEvent) {
         getStage().close();
-        EmoCore.tryCreateCommandsListWindow();
     }
 
     public Stage getStage() {
@@ -282,7 +286,6 @@ public class UpdateDragonController implements LanguageUpdatable {
         ElementsLocaleSetter.setLocalizedText(treasuresLabel, "treasuresLabelName");
         ElementsLocaleSetter.setLocalizedPromptText(treasuresField, "notNegativeFloatNumberFieldPromptText");
         treasuresWithErrorLabelProcess.setLocalizedErrorLabelIfHas(ageErrorLabelVariant);
-        ElementsLocaleSetter.setLocalizedText(updateDragonButton, "updateDragonButtonName");
         ElementsLocaleSetter.setLocalizedText(clearInputsButton, "clearInputsButtonName");
         ElementsLocaleSetter.setLocalizedText(exitButton, "exitButtonName");
     }

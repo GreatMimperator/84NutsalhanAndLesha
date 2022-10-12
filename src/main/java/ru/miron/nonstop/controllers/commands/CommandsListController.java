@@ -19,6 +19,7 @@ import ru.miron.nonstop.logic.commands.CommandAnswer;
 import ru.miron.nonstop.logic.commands.CommandName;
 import ru.miron.nonstop.logic.commands.specificAnswers.ClearDragonsCommandSpecificAnswer;
 import ru.miron.nonstop.logic.commands.specificAnswers.DragonsInfoCommandSpecificAnswer;
+import ru.miron.nonstop.logic.commands.specificAnswers.WingspansSumGettingCommandSpecificAnswer;
 
 import java.io.IOException;
 import java.util.function.Predicate;
@@ -37,11 +38,20 @@ public class CommandsListController implements LanguageUpdatable {
     public Button removeByKeyButton;
     @FXML
     public Button dragonsInfoGettingButton;
+    @FXML
     public Button clearOwnedDragonsButton;
+    @FXML
+    public Button removeOnCmpButton;
+    @FXML
+    public Button replaceIfGreaterButton;
+    @FXML
+    public Button wingspanSumGettingButton;
     @FXML
     public Button dragonsGettingButton;
     @FXML
     public Button backButton;
+
+    public TableController tableController;
 
     @FXML
     public void initialize() {
@@ -51,36 +61,61 @@ public class CommandsListController implements LanguageUpdatable {
 
     @FXML
     public void setInsertScene(ActionEvent actionEvent) {
-        EmoCore.setInsertDragonAsStageScene(getStage());
+        EmoCore.createInsertDragonWindow();
     }
 
     @FXML
     public void setUpdateScene(ActionEvent actionEvent) {
-        EmoCore.setUpdateDragonAsStageScene(getStage());
+        EmoCore.createUpdateDragonWindow();
     }
 
     @FXML
     public void setRemoveByKeyScene(ActionEvent actionEvent) {
-        EmoCore.setRemoveByKeyAsStageScene(getStage());
+        EmoCore.createRemoveByKeyWindow();
     }
+
+    @FXML
+    public void setReplaceIfGreaterScene(ActionEvent actionEvent) {
+        EmoCore.createReplaceIfGreaterWindow();
+    }
+
+    @FXML
+    public void showWingspanSum(ActionEvent actionEvent) {
+        Command command = new Command(CommandName.GET_WINGSPANS_SUM, EmoCore.enterEntry, null);
+        CommandAnswer wingspanGettingCommandAnswer;
+        try {
+            wingspanGettingCommandAnswer = EmoCore.tryToGetAnswer(command);
+        } catch (IllegalStateException e) {
+            return;
+        }
+        var wingspanGettingArgs = (WingspansSumGettingCommandSpecificAnswer) wingspanGettingCommandAnswer.getCommandSpecificAnswerObj();
+        var wingspansSum = wingspanGettingArgs.getWingspansSum();
+        var wingspanSumMsg = AppLocaleManager.getTextByLabel("wingspanSumMsg").formatted(wingspansSum);
+        try {
+            EmoCore.createInfoWindow(new LabelText(wingspanSumMsg, PLAIN_TEXT), "Wingspans sum");
+        } catch (IOException e) {
+            EmoCore.createErrorWithLoadingWindow();
+        }
+    }
+
 
     @FXML
     public void setDragonsInfoGettingScene(ActionEvent actionEvent) {
         var dragonsInfoGettingCommand = new Command(CommandName.DRAGONS_INFO, EmoCore.enterEntry, null);
-        var commandAnswer = EmoCore.tryToGetCommandAnswerWithErrorWindowsGenOnFailOrErrorAnswer(dragonsInfoGettingCommand);
+        var commandAnswer = EmoCore.tryToGetAnswer(dragonsInfoGettingCommand);
         var specificAnswer = (DragonsInfoCommandSpecificAnswer) commandAnswer.getCommandSpecificAnswerObj();
         var messageFormat = "%s:\n\n";
         for (int i = 0; i < 3; i++) {
             messageFormat += "%s: %s\n";
         }
-        var formattedDate = TableController.dateTimeFormatter.format(specificAnswer.getCreationDate());
+        var formattedDate = EmoCore.dateTimeFormatter.format(specificAnswer.getCreationDate());
         var message = messageFormat.formatted(
                 AppLocaleManager.getTextByLabel("collectionInfoName"),
                 AppLocaleManager.getTextByLabel("collectionTypeName"), specificAnswer.getCollectionType(),
                 AppLocaleManager.getTextByLabel("creationDateName"), formattedDate,
                 AppLocaleManager.getTextByLabel("dragonsCountName"), specificAnswer.getDragonsCount());
         try {
-            EmoCore.createInfoAutoClosableWindow(new LabelText(message, PLAIN_TEXT), "Dragons collection info");
+            EmoCore.createInfoWindow(new LabelText(message, PLAIN_TEXT), "Dragons collection info");
         } catch (IOException ioe) {}
     }
 
@@ -90,29 +125,23 @@ public class CommandsListController implements LanguageUpdatable {
         Predicate<DragonWithKeyAndOwner> notInOwn = dragonWithMeta -> !dragonWithMeta.getOwnerLogin().equals(login);
         if (EmoCore.getActualDragonsWithMeta().stream().allMatch(notInOwn)) {
             try {
-                EmoCore.createInfoAutoClosableWindow("nothingToClearMsg", "Loading error");
+                EmoCore.createInfoWindow("nothingToClearMsg", "Loading error");
             } catch (IOException ex) {}
             return;
         }
-        try {
-            Runnable clearAction = CommandsListController::clearOwnedDragons;
-            EmoCore.createConfirmAutoClosableWindow(
-                    "clearConfirmMsg",
-                    "clearButtonName",
-                    clearAction,
-                    "Clearing confirmation");
-        } catch (IOException e) {
-            try {
-                EmoCore.createInfoAutoClosableWindow("errorWithSceneLoadingMsg", "Loading error");
-            } catch (IOException ex) {}
-        }
+        Runnable clearAction = CommandsListController::clearOwnedDragons;
+        EmoCore.createConfirmWindow(
+                "clearConfirmMsg",
+                "clearButtonName",
+                clearAction,
+                "Clearing confirmation");
     }
 
     public static void clearOwnedDragons() {
         var clearCommand = new Command(CommandName.CLEAR_DRAGONS, EmoCore.enterEntry, null);
         CommandAnswer clearCommandAnswer;
         try {
-            clearCommandAnswer = EmoCore.tryToGetCommandAnswerWithErrorWindowsGenOnFailOrErrorAnswer(clearCommand);
+            clearCommandAnswer = EmoCore.tryToGetAnswer(clearCommand);
         } catch (IllegalStateException e) {
             return;
         }
@@ -120,26 +149,30 @@ public class CommandsListController implements LanguageUpdatable {
         var clearedCount = clearArgs.getClearedCount();
         if (clearedCount == 0) {
             try {
-                EmoCore.createInfoAutoClosableWindow("clearedNothingMsg", "Not cleared");
+                EmoCore.createInfoWindow("clearedNothingMsg", "Not cleared");
             } catch (IOException ioe) {}
         } else {
             try {
                 var msg = AppLocaleManager.getTextByLabel("clearedCountMsg").formatted(clearedCount);
                 var msgAsLabelText = new LabelText(msg, PLAIN_TEXT);
-                EmoCore.createInfoAutoClosableWindow(msgAsLabelText, "Not cleared");
+                EmoCore.createInfoWindow(msgAsLabelText, "Not cleared");
             } catch (IOException ioe) {}
         }
+    }
+
+    @FXML
+    public void setRemoveOnCmpScene() {
+        EmoCore.createRemoveOnCmpWindow();
     }
 
 
     @FXML
     public void updateDragons(ActionEvent actionEvent) {
         try {
-            var tableController = EmoCore.tryGettingMainStageTableController();
             tableController.updateTableContentsTask().run();
         } catch (IllegalStateException e) {
             try {
-                EmoCore.createInfoAutoClosableWindow("tableViewClosedMsg", "Table view closed");
+                EmoCore.createInfoWindow("tableViewClosedMsg", "Table view closed");
             } catch (IOException ioe) {}
         }
     }
@@ -153,6 +186,10 @@ public class CommandsListController implements LanguageUpdatable {
         return (Stage) commandsListPane.getScene().getWindow();
     }
 
+    public void setParent(TableController tableController) {
+        this.tableController = tableController;
+    }
+
     @Override
     public void updateLanguage() {
         ElementsLocaleSetter.setLocalizedText(dragonsInfoGettingButton, "dragonsInfoGettingButtonName");
@@ -162,6 +199,9 @@ public class CommandsListController implements LanguageUpdatable {
         ElementsLocaleSetter.setLocalizedText(updateDragonButton, "updateDragonButtonName");
         ElementsLocaleSetter.setLocalizedText(removeByKeyButton, "removeByKeyButtonName");
         ElementsLocaleSetter.setLocalizedText(clearOwnedDragonsButton, "clearOwnedDragonsButton");
+        ElementsLocaleSetter.setLocalizedText(removeOnCmpButton, "removeOnCmpButtonName");
+        ElementsLocaleSetter.setLocalizedText(replaceIfGreaterButton, "replaceIfGreaterButtonName");
+        ElementsLocaleSetter.setLocalizedText(wingspanSumGettingButton, "wingspanSumButtonName");
     }
 
 }

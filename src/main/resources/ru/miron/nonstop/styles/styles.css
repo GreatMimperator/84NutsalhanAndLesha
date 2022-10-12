@@ -13,7 +13,7 @@
     -fx-background-size: cover;
 }
 
-#removeByKeyPane, #insertDragonPane, #updateDragonPane {
+#removeByKeyPane, #insertDragonPane, #updateDragonPane, #removeOnCmpPane, #replaceIfGreaterPane {
     -fx-background-image: url("../dead/change_background.png");
     -fx-background-size: cover;
 }

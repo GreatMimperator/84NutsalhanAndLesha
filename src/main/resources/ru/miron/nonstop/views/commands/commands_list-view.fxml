@@ -17,6 +17,9 @@
     <Button fx:id="updateDragonButton" styleClass="defaultButton" onAction="#setUpdateScene"/>
     <Button fx:id="removeByKeyButton" styleClass="defaultButton" onAction="#setRemoveByKeyScene"/>
     <Button fx:id="dragonsInfoGettingButton" styleClass="defaultButton" onAction="#setDragonsInfoGettingScene"/>
+    <Button fx:id="removeOnCmpButton" styleClass="defaultButton" onAction="#setRemoveOnCmpScene"/>
+    <Button fx:id="replaceIfGreaterButton" styleClass="defaultButton" onAction="#setReplaceIfGreaterScene"/>
+    <Button fx:id="wingspanSumGettingButton" styleClass="defaultButton" onAction="#showWingspanSum"/>
     <Button fx:id="clearOwnedDragonsButton" styleClass="defaultButton" onAction="#setClearingConfirmation"/>
     <Button fx:id="dragonsGettingButton" styleClass="defaultButton, bigButton" onAction="#updateDragons" defaultButton="true"/>
     <Button fx:id="backButton" styleClass="defaultButton, superBigButton" onAction="#close" />

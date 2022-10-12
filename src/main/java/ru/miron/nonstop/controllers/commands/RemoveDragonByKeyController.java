@@ -57,7 +57,6 @@ public class RemoveDragonByKeyController implements LanguageUpdatable {
 
     public void openCommandsListInstead(ActionEvent actionEvent) {
         getStage().close();
-        EmoCore.tryCreateCommandsListWindow();
     }
 
     public Stage getStage() {
@@ -68,7 +67,7 @@ public class RemoveDragonByKeyController implements LanguageUpdatable {
         if (checkInputAndShowIfBad()) {
             System.out.println("Remove by key field is bad. So, wont send any data");
             try {
-                EmoCore.createInfoAutoClosableWindow("badEnteredInfoMsg", "Bad entered info");
+                EmoCore.createInfoWindow("badEnteredInfoMsg", "Bad entered info");
             } catch (IOException e) {}
         } else {
             System.out.println("Remove by key field is good");
@@ -76,14 +75,14 @@ public class RemoveDragonByKeyController implements LanguageUpdatable {
             var dragonWithMetaByKey = EmoCore.getActualDragonsWithMetaByKey(key);
             if (dragonWithMetaByKey == null) {
                 try {
-                    EmoCore.createInfoAutoClosableWindow("hasNotCashedDragonWithKeyMsg", "Bad entered info");
+                    EmoCore.createInfoWindow("hasNotCashedDragonWithKeyMsg", "Bad entered info");
                 } catch (IOException e) {}
                 return;
             }
             var removeCommand = new Command(CommandName.REMOVE_DRAGON_BY_KEY, EmoCore.enterEntry, new RemoveDragonByKeyCommandArgs(key));
             CommandAnswer updateCommandAnswer;
             try {
-                updateCommandAnswer = EmoCore.tryToGetCommandAnswerWithErrorWindowsGenOnFailOrErrorAnswer(removeCommand);
+                updateCommandAnswer = EmoCore.tryToGetAnswer(removeCommand);
             } catch (IllegalStateException e) {
                 return;
             }
@@ -91,17 +90,17 @@ public class RemoveDragonByKeyController implements LanguageUpdatable {
             switch (updatedState) {
                 case "removed" -> {
                     try {
-                        EmoCore.createInfoAutoClosableWindow("dragonRemovedMsg", "Updated");
+                        EmoCore.createInfoWindow("dragonRemovedMsg", "Updated");
                     } catch (IOException ioe) {}
                 }
                 case "wrong key" -> {
                     try {
-                        EmoCore.createInfoAutoClosableWindow("wrongKeyOnRemoveMsg", "Wrong id");
+                        EmoCore.createInfoWindow("wrongKeyOnRemoveMsg", "Wrong id");
                     } catch (IOException ioe) {}
                 }
                 case "not yours" -> {
                     try {
-                        EmoCore.createInfoAutoClosableWindow("notYoursDragonMsg", "Not yours");
+                        EmoCore.createInfoWindow("notYoursDragonMsg", "Not yours");
                     } catch (IOException ioe) {}
                 }
                 default -> {

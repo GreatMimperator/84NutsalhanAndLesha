@@ -6,6 +6,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
 import ru.miron.nonstop.EmoCore;
+import ru.miron.nonstop.controllers.TableController;
 import ru.miron.nonstop.controllers.Utils;
 import ru.miron.nonstop.controllers.Validate;
 import ru.miron.nonstop.givenClasses.*;
@@ -73,6 +74,7 @@ public class InsertDragonController implements LanguageUpdatable {
     private Validate.InputWithErrorLabelProcess wingspanWithErrorLabelProcess;
     private Validate.InputWithErrorLabelProcess treasuresWithErrorLabelProcess;
 
+    private CommandsListController commandsListController;
 
     @FXML
     public void initialize() {
@@ -119,7 +121,7 @@ public class InsertDragonController implements LanguageUpdatable {
         if (checkInputsAndShowIfBad()) {
             System.out.println("Insert dragons fields are bad. So, wont send any data");
             try {
-                EmoCore.createInfoAutoClosableWindow("badEnteredInfoMsg", "Bad entered info");
+                EmoCore.createInfoWindow("badEnteredInfoMsg", "Bad entered info");
             } catch (IOException e) {}
         } else {
             System.out.println("Dragon fields are good. So, will send to server");
@@ -138,7 +140,7 @@ public class InsertDragonController implements LanguageUpdatable {
             var insertCommand = new Command(CommandName.INSERT_DRAGON, EmoCore.enterEntry, new InsertCommandArgs(dragonWithKeyAndOwner));
             CommandAnswer insertCommandAnswer;
             try {
-                insertCommandAnswer = EmoCore.tryToGetCommandAnswerWithErrorWindowsGenOnFailOrErrorAnswer(insertCommand);
+                insertCommandAnswer = EmoCore.tryToGetAnswer(insertCommand);
             } catch (IllegalStateException e) {
                 return;
             }
@@ -146,12 +148,12 @@ public class InsertDragonController implements LanguageUpdatable {
             switch (insertState) {
                 case "inserted" -> {
                     try {
-                        EmoCore.createInfoAutoClosableWindow("dragonInsertedMsg", "Inserted");
+                        EmoCore.createInfoWindow("dragonInsertedMsg", "Inserted");
                     } catch (IOException ioe) {}
                 }
                 case "dublicate key" -> {
                     try {
-                        EmoCore.createInfoAutoClosableWindow("duplicateKeyOnInsertMsg", "Dublicate key");
+                        EmoCore.createInfoWindow("duplicateKeyOnInsertMsg", "Dublicate key");
                     } catch (IOException ioe) {}
                 }
                 default -> {
@@ -182,7 +184,6 @@ public class InsertDragonController implements LanguageUpdatable {
 
     public void openCommandsListInstead(ActionEvent actionEvent) {
         getStage().close();
-        EmoCore.tryCreateCommandsListWindow();
     }
 
     public Stage getStage() {

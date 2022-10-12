@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+
+<HBox fx:id="removeOnCmpPane" alignment="CENTER" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="ru.miron.nonstop.controllers.commands.RemoveOnCmpController" stylesheets="@../../styles/styles.css" spacing="10">
+    <padding>
+        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
+    </padding>
+    <VBox spacing="5">
+        <Label fx:id="idLabel" styleClass="defaultLabel"/>
+        <TextField fx:id="idField" styleClass="defaultField"/>
+        <Label fx:id="idErrorLabel" visible="false" styleClass="errorLabel"/>
+        <Button fx:id="fillWithPreviousDataButton" onAction="#fillWithPreviousData" styleClass="defaultButton"/>
+        <Label fx:id="nameLabel" styleClass="defaultLabel"/>
+        <TextField fx:id="nameField" styleClass="defaultField"/>
+        <Label fx:id="nameErrorLabel" visible="false" styleClass="errorLabel"/>
+        <Label fx:id="ageLabel" styleClass="defaultLabel"/>
+        <TextField fx:id="ageField" styleClass="defaultField"/>
+        <Label fx:id="ageErrorLabel" visible="false" styleClass="errorLabel"/>
+        <Label fx:id="descriptionLabel" styleClass="defaultLabel"/>
+        <TextArea fx:id="descriptionArea" wrapText="true" styleClass="defaultTextArea"/>
+        <Label fx:id="descriptionErrorLabel" visible="false" styleClass="errorLabel"/>
+    </VBox>
+    <Region minWidth="25" HBox.hgrow="ALWAYS"/>
+    <VBox spacing="5">
+        <Label fx:id="keyLabel" styleClass="defaultLabel"/>
+        <TextField fx:id="keyField" styleClass="defaultField"/>
+        <Label fx:id="keyErrorLabel" styleClass="errorLabel"/>
+        <HBox spacing="10">
+            <VBox spacing="5">
+                <Label fx:id="xLabel" styleClass="defaultLabel"/>
+                <TextField fx:id="xField" styleClass="defaultField"/>
+                <Label fx:id="xErrorLabel" visible="false" styleClass="errorLabel"/>
+            </VBox>
+            <VBox spacing="5">
+                <Label fx:id="yLabel" styleClass="defaultLabel"/>
+                <TextField fx:id="yField" styleClass="defaultField"/>
+                <Label fx:id="yErrorLabel" visible="false" styleClass="errorLabel"/>
+            </VBox>
+        </HBox>
+        <Label fx:id="wingspanLabel" styleClass="defaultLabel"/>
+        <TextField fx:id="wingspanField" styleClass="defaultField"/>
+        <Label fx:id="wingspanErrorLabel" visible="false" styleClass="errorLabel"/>
+        <Label fx:id="typeLabel" styleClass="defaultLabel"/>
+        <ChoiceBox fx:id="typeChoiceBox" styleClass="defaultField"/>
+        <Label fx:id="treasuresLabel" styleClass="defaultLabel"/>
+        <TextField fx:id="treasuresField" styleClass="defaultField"/>
+        <Label fx:id="treasuresErrorLabel" styleClass="errorLabel"/>
+        <HBox spacing="5">
+            <Button fx:id="clearInputsButton" onAction="#clearInputs" styleClass="defaultButton"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button fx:id="removeGreaterButton" onAction="#tryRemoveGreater" styleClass="defaultButton"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button fx:id="removeLowerButton" onAction="#tryRemoveLower" styleClass="defaultButton"/>
+        </HBox>
+        <Region minHeight="20"/>
+        <HBox>
+            <ChoiceBox fx:id="languageSelector"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button fx:id="exitButton" onAction="#openCommandsListInstead" styleClass="defaultButton, bigButton"/>
+        </HBox>
+    </VBox>
+</HBox>

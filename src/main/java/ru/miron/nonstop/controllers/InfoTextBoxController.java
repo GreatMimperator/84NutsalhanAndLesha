@@ -11,8 +11,6 @@ public class InfoTextBoxController implements LanguageUpdatable {
     @FXML
     private Label infoLabel;
     @FXML
-    private ChoiceBox<String> languageSelector;
-    @FXML
     private Button okButton;
 
     private LabelText infoLabelText;
@@ -22,7 +20,6 @@ public class InfoTextBoxController implements LanguageUpdatable {
     @FXML
     public void initialize() {
         System.out.println("inited info controller");
-        AppLocaleChoiceBoxSetter.setContentAndOnChangeLanguageChange(languageSelector);
         setLabels();
     }
 
@@ -51,10 +48,10 @@ public class InfoTextBoxController implements LanguageUpdatable {
             ElementsLocaleSetter.setText(infoLabel, infoLabelText);
         }
         ElementsLocaleSetter.setText(okButton, okButtonLabelText);
-        AppLocaleChoiceBoxSetter.updateLanguage(languageSelector);
     }
 
     public void setInfoLabelText(LabelText labelText) {
+        System.out.println(labelText.getPlainText());
         this.infoLabelText = labelText;
         setLabels();
     }

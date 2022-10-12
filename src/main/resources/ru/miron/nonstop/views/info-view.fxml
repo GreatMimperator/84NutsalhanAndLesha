@@ -9,9 +9,6 @@
     <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="5.0"/>
     </padding>
-    <VBox alignment="BASELINE_RIGHT">
-        <ChoiceBox fx:id="languageSelector"/>
-    </VBox>
     <Label fx:id="infoLabel" styleClass="defaultLabel" wrapText="true"/>
     <Button fx:id="okButton" styleClass="defaultButton" onAction="#onOkClick" defaultButton="true"/>
 </VBox>

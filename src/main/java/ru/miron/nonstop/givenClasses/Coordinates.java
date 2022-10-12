@@ -103,7 +103,7 @@ public class Coordinates implements JSONConvertable {
             return false;
         }
         return Objects.equals(coordinates.x, this.x) &&
-            Objects.equals(coordinates.y, this.y);
+                Objects.equals(coordinates.y, this.y);
     }
 
     @Override

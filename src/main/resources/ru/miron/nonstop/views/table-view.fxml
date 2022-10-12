@@ -10,9 +10,11 @@
       fx:controller="ru.miron.nonstop.controllers.TableController" stylesheets="@../styles/styles.css" >
     <TableView fx:id="dragonsTableView" AnchorPane.topAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"/>
     <HBox fx:id="tablePaneFooter" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
-        <HBox alignment="CENTER_LEFT" >
-            <Button fx:id="filterButton" styleClass="defaultButton, bigButton" />
-        </HBox>
+        <VBox alignment="CENTER_LEFT" >
+            <Button fx:id="filterButton" styleClass="defaultButton" />
+            <Region HBox.hgrow="ALWAYS" minHeight="10"/>
+            <Button fx:id="dragonsViewButton" onAction="#setDragonsViewScene" styleClass="defaultButton, bigButton"/>
+        </VBox>
         <Region HBox.hgrow="ALWAYS"/>
         <HBox alignment="CENTER" >
             <Button fx:id="commandsListButton" onAction="#openCommandsListWindow" styleClass="defaultButton, superBigButton"/>

@@ -11,15 +11,12 @@ import javafx.util.Callback;
 import ru.miron.nonstop.EmoCore;
 import ru.miron.nonstop.givenClasses.*;
 import ru.miron.nonstop.locales.AppLocaleChoiceBoxSetter;
-import ru.miron.nonstop.locales.AppLocaleManager;
 import ru.miron.nonstop.locales.ElementsLocaleSetter;
 import ru.miron.nonstop.locales.LanguageUpdatable;
-import ru.miron.nonstop.locales.entities.LabelText;
 import ru.miron.nonstop.logic.commands.Command;
 import ru.miron.nonstop.logic.commands.CommandName;
 import ru.miron.nonstop.logic.commands.specificAnswers.DragonsGettingCommandSpecificAnswer;
 
-import java.io.IOException;
 import java.net.ConnectException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -27,17 +24,15 @@ import java.time.temporal.Temporal;
 import java.util.Comparator;
 import java.util.LinkedList;
 
-import static ru.miron.nonstop.locales.entities.LabelText.TextType.PLAIN_TEXT;
-
 public class TableController implements LanguageUpdatable {
-    public static DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yy.MM.dd kk:mm:ss");
-
     @FXML
     TableView<DragonWithKeyAndOwner> dragonsTableView;
     @FXML
     Button commandsListButton;
     @FXML
     Button filterButton;
+    @FXML
+    Button dragonsViewButton;
     @FXML
     ChoiceBox<String> languageSelector;
     @FXML
@@ -133,7 +128,7 @@ public class TableController implements LanguageUpdatable {
         typeColumn.setCellValueFactory(dragonWithKeyAndOwner -> dragonWithKeyAndOwner.getValue().typeProperty());
         treasuresColumn.setCellValueFactory(dragonWithKeyAndOwner -> dragonWithKeyAndOwner.getValue().treasuresProperty().asObject());
         // another way of showing
-        dateColumn.setCellFactory(getDateCell(dateTimeFormatter)); // todo:
+        dateColumn.setCellFactory(getDateCell(EmoCore.dateTimeFormatter)); // todo:
         // set comparators
         ownerColumn.setComparator(Comparator.comparingInt(String::length));
         nameColumn.setComparator(Comparator.comparingInt(String::length));
@@ -150,6 +145,11 @@ public class TableController implements LanguageUpdatable {
     }
 
     @FXML
+    public void setDragonsViewScene() {
+        EmoCore.createDragonsViewWindow();
+    }
+
+    @FXML
     public void setEnterScene() {
 //        dataUpdater.shutdownNow();
         EmoCore.setHelloScene();
@@ -157,7 +157,8 @@ public class TableController implements LanguageUpdatable {
 
     @FXML
     public void openCommandsListWindow(ActionEvent actionEvent) {
-        EmoCore.tryCreateCommandsListWindow();
+        var controller = EmoCore.createCommandsListWindow();
+        controller.setParent(this);
     }
 
     public static <ROW,T extends Temporal> Callback<TableColumn<ROW, T>, TableCell<ROW, T>> getDateCell(DateTimeFormatter format) {
@@ -187,26 +188,7 @@ public class TableController implements LanguageUpdatable {
                     TablePosition pos = selectedCells.get(0);
                     int row = pos.getRow();
                     var clickedDragonWithMeta = dragonsObservableList.get(row);
-                    var dragonWithMetaInfoTemplate = AppLocaleManager.getTextByLabel("chooseDragonByClickMsg") + "\n\n";
-                    for (int i = 0; i < 11; i++) {
-                        dragonWithMetaInfoTemplate += "%s: %s\n";
-                    }
-                    var dragonWithMetaInfo = String.format(dragonWithMetaInfoTemplate,
-                            AppLocaleManager.getTextByLabel("ownerLoginName"), clickedDragonWithMeta.getOwnerLogin(),
-                            AppLocaleManager.getTextByLabel("idName"), clickedDragonWithMeta.getDragon().getId(),
-                            AppLocaleManager.getTextByLabel("keyName"), clickedDragonWithMeta.getKey(),
-                            AppLocaleManager.getTextByLabel("nameName"), clickedDragonWithMeta.getDragon().getName(),
-                            AppLocaleManager.getTextByLabel("xName"), clickedDragonWithMeta.getDragon().getCoordinates().getX(),
-                            AppLocaleManager.getTextByLabel("yName"), clickedDragonWithMeta.getDragon().getCoordinates().getY(),
-                            AppLocaleManager.getTextByLabel("dateName"), clickedDragonWithMeta.getDragon().getCreationDate().format(dateTimeFormatter),
-                            AppLocaleManager.getTextByLabel("ageName"), clickedDragonWithMeta.getDragon().getAge(),
-                            AppLocaleManager.getTextByLabel("descriptionName"), clickedDragonWithMeta.getDragon().getDescription(),
-                            AppLocaleManager.getTextByLabel("wingspanName"), clickedDragonWithMeta.getDragon().getWingspan(),
-                            AppLocaleManager.getTextByLabel("typeName"), ElementsLocaleSetter.getLocalizedDragonType(clickedDragonWithMeta.getDragon().getType()),
-                            AppLocaleManager.getTextByLabel("treasuresName"), clickedDragonWithMeta.getDragon().getCave().getNumberOfTreasures());
-                    try {
-                        EmoCore.createInfoAutoClosableWindow(new LabelText(dragonWithMetaInfo, PLAIN_TEXT), "Clicked dragon info");
-                    } catch (IOException e) {}
+                    EmoCore.createDragonInfoWindow(clickedDragonWithMeta);
                 }
             }
         };
@@ -230,6 +212,7 @@ public class TableController implements LanguageUpdatable {
         ElementsLocaleSetter.setLocalizedText(exitButton, "exitButtonName");
         ElementsLocaleSetter.setLocalizedText(commandsListButton, "commandsButtonName");
         ElementsLocaleSetter.setLocalizedText(filterButton, "filterButtonName");
+        ElementsLocaleSetter.setLocalizedText(dragonsViewButton, "dragonsViewButtonName");
         AppLocaleChoiceBoxSetter.updateLanguage(languageSelector);
     }
 
